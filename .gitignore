@@ -1,0 +1,16 @@
+node_modules/
+dist/
+build/
+*.log
+
+# 派生索引：可随时重建，不进版本库
+data/worlds/*/index.json
+
+# 渲染缓存：地图是关系的投影，不是资产
+data/worlds/*/atlas/*.png
+
+# 本地设置
+.env
+.env.local
+.DS_Store
+Thumbs.db
