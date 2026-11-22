@@ -1,0 +1,594 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>小说工作台 · 三阶段 Demo</title>
+<style>
+  :root{
+    --bg:#fbfaf7; --panel:#fffefb; --ink:#22201c; --muted:#6d6760; --faint:#a8a29a;
+    --line:#e7e3d9; --line-soft:#f2efe7;
+    --accent:#2f6f4f; --accent-soft:#e8f0ea;
+    --err:#b3352b; --err-soft:#fbeceb;
+    --warn:#a8791a; --warn-soft:#fdf4e3;
+    --serif:"Songti SC","Noto Serif SC",Georgia,serif;
+    --sans:-apple-system,"Segoe UI","Microsoft YaHei",system-ui,sans-serif;
+    --mono:"SFMono-Regular",Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;-webkit-font-smoothing:antialiased}
+  .app{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+
+  /* 总壳 */
+  .top{display:flex;align-items:center;gap:4px;padding:0 14px;height:46px;border-bottom:1px solid var(--line);background:var(--panel);flex:0 0 46px}
+  .top .logo{font-weight:600;font-size:13.5px;margin-right:16px;letter-spacing:.02em}
+  .stage{border:none;background:none;font:inherit;color:var(--muted);padding:6px 14px;border-radius:7px;cursor:pointer;font-size:13px}
+  .stage:hover{background:var(--line-soft)}
+  .stage.on{background:var(--accent-soft);color:var(--accent);font-weight:600}
+  .top .right{margin-left:auto;display:flex;align-items:center;gap:14px;font-size:12.5px;color:var(--muted)}
+  .diag{color:var(--err);cursor:pointer}
+
+  .body{flex:1;display:flex;overflow:hidden}
+  .rail{width:196px;flex:0 0 196px;border-right:1px solid var(--line);background:var(--panel);padding:8px 0;overflow:auto}
+  .rail .t{padding:8px 16px 4px;color:var(--faint);font-size:11px;letter-spacing:.08em}
+  .rail .item{padding:7px 16px;cursor:pointer;display:flex;gap:8px;align-items:center;border-left:2px solid transparent;font-size:13.5px}
+  .rail .item:hover{background:var(--line-soft)}
+  .rail .item.on{background:var(--accent-soft);border-left-color:var(--accent);color:var(--accent);font-weight:600}
+  .rail .item .n{margin-left:auto;color:var(--faint);font-size:11px;font-family:var(--mono)}
+  .rail .sub{padding:5px 16px 5px 30px;cursor:pointer;font-size:12.5px;color:var(--muted)}
+  .rail .sub:hover{color:var(--ink)}
+  .rail .sub.on{color:var(--accent);font-weight:600}
+  .rail .sep{height:1px;background:var(--line-soft);margin:8px 0}
+
+  .main{flex:1;overflow:auto;position:relative}
+  .page{padding:28px 36px 60px;max-width:880px}
+  .eyebrow{color:var(--faint);font-size:11px;letter-spacing:.1em;margin-bottom:10px}
+  h2.t{font-size:23px;margin:0 0 4px;font-family:var(--serif);font-weight:600}
+  .sub{color:var(--muted);font-size:13px;margin:2px 0 20px}
+  .prose{font-family:var(--serif);font-size:16px;line-height:1.95}
+  .prose p{margin:0 0 1em}
+  .prop{color:var(--muted);font-size:13px;border-left:2px solid var(--line);padding-left:10px;margin:10px 0 20px}
+  .tag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:999px;border:1px solid var(--line);color:var(--muted);background:var(--bg);margin-right:5px}
+  .tag.hard{border-color:#d9c3bf;background:var(--err-soft);color:#8d332a}
+  .tag.firm{border-color:#e3d2b4;background:var(--warn-soft);color:var(--warn)}
+  .tag.myth{border-color:#d8d3e3;background:#f3f1f7;color:#5f5776}
+  .card{border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:14px 16px;margin-bottom:12px}
+  .kv{display:grid;grid-template-columns:88px 1fr;gap:7px 14px;font-size:12.5px}
+  .kv dt{color:var(--faint)} .kv dd{margin:0}
+
+  /* 地理画布 */
+  .canvas{position:relative;border:1px solid var(--line);border-radius:12px;background:#eef3f0;overflow:hidden}
+  .canvas svg{display:block;width:100%;height:auto}
+  .pin{font-size:11px;fill:#3a3730}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);margin-top:10px}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+
+  /* 人物 */
+  .states{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0 20px}
+  .st{border:1px solid var(--line);border-radius:9px;padding:10px 12px;background:var(--panel)}
+  .st .yr{font-family:var(--mono);font-size:11px;color:var(--faint)}
+  .st .w{font-size:12.5px;margin-top:6px}
+  .st .w b{font-weight:600}
+
+  /* 规划 */
+  .split{display:flex;flex-direction:column;height:100%}
+  .tlwrap{flex:0 0 auto;padding:20px 28px 10px;border-bottom:1px solid var(--line);background:var(--panel)}
+  .tl{position:relative;height:150px;user-select:none;cursor:crosshair}
+  .lane{position:absolute;left:0;right:0;height:34px}
+  .lane .lab{position:absolute;left:0;top:8px;font-size:11px;color:var(--faint);width:64px}
+  .track{position:absolute;left:72px;right:8px;top:12px;height:12px;background:var(--line-soft);border-radius:3px}
+  .ev{position:absolute;top:0;height:12px;border-radius:3px;background:#bcd6c5;cursor:pointer}
+  .ev.world{background:#8fbfa5} .ev.region{background:#c2d3b4} .ev.personal{background:#dcd6c4} .ev.hist{background:#d8d3e3}
+  .sel{position:absolute;top:0;bottom:0;background:rgba(47,111,79,.10);border-left:2px solid var(--accent);border-right:2px solid var(--accent);display:none}
+  .axis{position:relative;height:16px;margin-top:2px}
+  .axis span{position:absolute;font-family:var(--mono);font-size:10.5px;color:var(--faint);transform:translateX(-50%)}
+  .planactions{display:flex;align-items:center;gap:12px;padding:10px 28px 14px;background:var(--panel)}
+  .planactions button{border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:7px;padding:6px 14px;font:inherit;font-size:13px;cursor:pointer}
+  .planactions button:disabled{background:#dcd8ce;border-color:#dcd8ce;cursor:not-allowed;color:#fff}
+  .hintline{font-size:12.5px;color:var(--warn)}
+  .hintline.ok{color:var(--accent)}
+
+  .struct{flex:1;display:flex;overflow:hidden}
+  .tree{flex:1;overflow:auto;padding:18px 28px}
+  .vol{border:1px solid var(--line);border-radius:10px;background:var(--panel);margin-bottom:12px;overflow:hidden}
+  .vol .vh{display:flex;gap:10px;align-items:baseline;padding:10px 14px;border-bottom:1px solid var(--line-soft)}
+  .vol .vh b{font-size:14px}
+  .vol .vh .r{font-family:var(--mono);font-size:11.5px;color:var(--faint)}
+  .vol .vh .ph{margin-left:auto;font-size:11px;color:var(--faint)}
+  .ep{padding:8px 14px 8px 26px;border-bottom:1px dashed var(--line-soft)}
+  .ep .eh{font-size:13px;color:var(--muted);display:flex;gap:8px;align-items:center}
+  .ch{padding:5px 14px 5px 44px;font-size:12.5px;cursor:pointer;color:var(--ink)}
+  .ch:hover{background:var(--accent-soft)}
+  .side{width:250px;flex:0 0 250px;border-left:1px solid var(--line);background:var(--panel);padding:14px 16px;overflow:auto}
+  .side h4{margin:0 0 10px;font-size:12px;color:var(--faint);letter-spacing:.06em;font-weight:600}
+  .knot{border-bottom:1px solid var(--line-soft);padding:8px 0;font-size:12.5px}
+  .knot .k{display:flex;justify-content:space-between;gap:8px}
+  .bar{height:4px;border-radius:2px;background:var(--line-soft);margin-top:6px;overflow:hidden}
+  .bar i{display:block;height:100%;background:#c8a35a}
+  .knot .warn{color:var(--warn);font-size:11px}
+
+  /* 创作 */
+  .pipe{max-width:860px;padding:26px 36px 60px}
+  .step{border:1px solid var(--line);border-radius:10px;background:var(--panel);margin-bottom:14px;overflow:hidden}
+  .step .sh{display:flex;align-items:center;gap:9px;padding:10px 14px;border-bottom:1px solid var(--line-soft);font-size:13px;font-weight:600}
+  .step .sh .num{width:18px;height:18px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-size:11px;display:grid;place-items:center}
+  .step .sb{padding:12px 14px;font-size:13px;line-height:1.8}
+  .chips{display:flex;gap:6px;flex-wrap:wrap}
+  .chip{border:1px solid var(--line);border-radius:999px;padding:2px 9px;font-size:11.5px;color:var(--muted);background:var(--bg)}
+  .chip.no{border-style:dashed;color:var(--faint)}
+  .scene{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
+  .scene div{border:1px solid var(--line-soft);border-radius:7px;padding:7px 9px;font-size:11.5px;color:var(--muted);background:var(--bg)}
+  .scene b{display:block;color:var(--faint);font-size:10.5px;font-weight:600;margin-bottom:3px;letter-spacing:.06em}
+  .transcript{font-family:var(--serif);font-size:14.5px;line-height:2}
+  .transcript .who{font-family:var(--sans);font-size:12px;color:var(--accent);font-weight:600;margin-right:8px}
+  .pick{float:right;font-size:11px;color:var(--faint);font-family:var(--sans)}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="logo">小说工作台</div>
+    <button class="stage on" data-s="set">① 设定</button>
+    <button class="stage" data-s="plan">② 规划</button>
+    <button class="stage" data-s="write">③ 创作</button>
+    <div class="right">
+      <span>记忆之世</span>
+      <span class="diag">● 诊断 6</span>
+    </div>
+  </header>
+  <div class="body">
+    <nav class="rail" id="rail"></nav>
+    <div class="main" id="main"></div>
+  </div>
+</div>
+
+<script>
+/* ---------------- 数据（样例） ---------------- */
+const systems = [
+  {id:'world', name:'世界观', n:'15'},
+  {id:'geo',   name:'地理',   n:'9'},
+  {id:'char',  name:'人物',   n:'7'},
+  {id:'org',   name:'组织',   n:'4'},
+  {id:'chron', name:'编年史', n:'12'},
+  {id:'evt',   name:'事件',   n:'8'},
+];
+
+const events = [
+  {id:'H-002', t:'收养制形成',          a:-400, b:-380, scale:'hist',     lane:0},
+  {id:'H-001', t:'玄帝断三脉（传说）',   a:300,  b:305,  scale:'hist',     lane:0},
+  {id:'V-0455', t:'三脉城矿脉见底',      a:598,  b:598,  scale:'region',   lane:1},
+  {id:'V-0508', t:'北境旱灾',            a:608,  b:610,  scale:'region',   lane:1},
+  {id:'V-0510', t:'断脉关之战',          a:611,  b:613,  scale:'world',    lane:0},
+  {id:'V-0512', t:'河权失北境',          a:612,  b:612,  scale:'world',    lane:0},
+  {id:'V-0601', t:'主角被卷入',          a:613,  b:613,  scale:'personal', lane:2},
+  {id:'V-0602', t:'主角读到玄帝真相',    a:615,  b:615,  scale:'personal', lane:2},
+  {id:'V-0605', t:'觉明被揭穿',          a:615,  b:617,  scale:'world',    lane:1},
+  {id:'V-0610', t:'寒谷困守',            a:616,  b:617,  scale:'region',   lane:1},
+];
+
+const structure = [
+  {id:'v1', name:'卷一 · 抄名', from:598, to:608, phase:'建置', episodes:[
+    {id:'e1', name:'集 01 · 脉与名', lines:['主角','教团'], chapters:[
+      {id:'c03', name:'第 03 章 · 茶'}, {id:'c04', name:'第 04 章 · 名字'}]},
+  ]},
+  {id:'v2', name:'卷二 · 断脉', from:608, to:617, phase:'发展 → 高潮', episodes:[
+    {id:'e15', name:'集 15 · 断脉关', lines:['主角','甲部','觉明'], chapters:[
+      {id:'c78', name:'第 78 章 · 擂台'}, {id:'c79', name:'第 79 章 · 关破'}, {id:'c80', name:'第 80 章 · 袖口'}]},
+    {id:'e16', name:'集 16 · 揭穿', lines:['主角','觉明'], chapters:[
+      {id:'c88', name:'第 88 章 · 还脉'}]},
+  ]},
+];
+
+const knots = [
+  {k:'债 · 主角 → 甲部', tension:65, where:'第二幕中', warn:'已过 8 章未动'},
+  {k:'知情 · 主角 → 觉明', tension:80, where:'第三幕', warn:''},
+  {k:'盟 · 甲部 → 法师团', tension:55, where:'第二幕末', warn:''},
+  {k:'仇 · 河权 → 甲部', tension:40, where:'卷三', warn:''},
+];
+
+/* ---------------- 状态 ---------------- */
+let stage = 'set';
+let sys = 'world';
+let planSel = null;      // {from,to}
+let openChapter = 'c78';
+let planning = false;
+
+const main = document.getElementById('main');
+const rail = document.getElementById('rail');
+const el = (t,c,x)=>{const e=document.createElement(t); if(c)e.className=c; if(x!=null)e.textContent=x; return e;};
+
+/* ---------------- 壳 ---------------- */
+document.querySelectorAll('.stage').forEach(b => b.onclick = () => {
+  stage = b.dataset.s;
+  document.querySelectorAll('.stage').forEach(x=>x.classList.toggle('on', x===b));
+  render();
+});
+
+function renderRail(){
+  rail.innerHTML = '';
+  if (stage === 'set'){
+    rail.appendChild(el('div','t','设定系统'));
+    for (const s of systems){
+      const it = el('div','item'+(sys===s.id?' on':''));
+      it.innerHTML = `${s.name}<span class="n">${s.n}</span>`;
+      it.onclick = () => { sys = s.id; render(); };
+      rail.appendChild(it);
+    }
+    rail.appendChild(el('div','sep'));
+    rail.appendChild(el('div','t','全局'));
+    const d = el('div','item'); d.innerHTML = '诊断<span class="n" style="color:var(--err)">6</span>';
+    rail.appendChild(d);
+  } else if (stage === 'plan'){
+    rail.appendChild(el('div','t','结构'));
+    for (const v of structure){
+      rail.appendChild(el('div','item','▸ '+v.name));
+      for (const ep of v.episodes) rail.appendChild(el('div','sub','· '+ep.name));
+    }
+    rail.appendChild(el('div','sep'));
+    rail.appendChild(el('div','t','原料'));
+    rail.appendChild(el('div','sub','编年史（12 事件）'));
+    rail.appendChild(el('div','sub','未解的结（4）'));
+  } else {
+    rail.appendChild(el('div','t','卷 / 集 / 章'));
+    for (const v of structure){
+      const it = el('div','item'); it.textContent = v.name; rail.appendChild(it);
+      for (const ep of v.episodes){
+        rail.appendChild(el('div','sub','· '+ep.name));
+        for (const c of ep.chapters){
+          const s = el('div','sub'+(c.id===openChapter?' on':''),'  '+c.name);
+          s.onclick = () => { openChapter = c.id; render(); };
+          rail.appendChild(s);
+        }
+      }
+    }
+  }
+}
+
+/* ---------------- ① 设定 ---------------- */
+function pageWorld(){
+  const p = el('div','page');
+  p.innerHTML = `
+    <div class="eyebrow">公理 · W-AX-001</div>
+    <h2 class="t">记忆是燃料</h2>
+    <div class="prop">施法会永久烧毁施法者的记忆，烧毁量与法术强度成正比。</div>
+    <div class="prose">
+      <p>施法会永久烧毁施法者的记忆，烧毁量与法术强度成正比。</p>
+      <p>这条规则不是秘密，是常识——就像我们知道火会烫手。但它带来的后果，大多数人不去想。</p>
+    </div>
+    <div class="card" style="margin-top:22px">
+      <dl class="kv">
+        <dt>强度</dt><dd><span class="tag hard">硬法则</span> 不可违反</dd>
+        <dt>生效区间</dt><dd>纪元前 1200 — 至今</dd>
+        <dt>代价</dt><dd>记忆 · 身份 · 亲情</dd>
+        <dt>派生</dt><dd>法师无法世袭 · 记忆当铺 · 收养制</dd>
+        <dt>表现</dt><dd>还脉礼 · 欠名录 · 无字塔 · 抄名匠</dd>
+        <dt>被引用</dt><dd>第 03 章 2 段 · 4 个条目</dd>
+      </dl>
+    </div>`;
+  return p;
+}
+
+function pageGeo(){
+  const p = el('div','page');
+  p.innerHTML = `<div class="eyebrow">地理 · 关系投影</div>
+    <h2 class="t">北陆</h2>
+    <p class="sub">色块由「谁与谁接壤」的关系推出来，不是画上去的。改关系，图就变。</p>
+    <div class="canvas">
+      <svg viewBox="0 0 720 340">
+        <rect width="720" height="340" fill="#e4ece9"/>
+        <path d="M60 70 L200 40 L330 66 L360 150 L300 236 L170 250 L78 190 Z" fill="#8fbf8f" stroke="#fff" stroke-width="2"/>
+        <path d="M330 66 L470 52 L540 120 L520 210 L420 246 L360 150 Z" fill="#d9cfa4" stroke="#fff" stroke-width="2"/>
+        <path d="M300 236 L420 246 L470 300 L360 320 L250 300 Z" fill="#c9b98a" stroke="#fff" stroke-width="2"/>
+        <path d="M540 120 L660 100 L690 190 L620 260 L520 210 Z" fill="#a9c4b6" stroke="#fff" stroke-width="2"/>
+        <text x="150" y="150" class="pin">温带雨林（西岸迎风）</text>
+        <text x="400" y="140" class="pin">半干旱草原</text>
+        <text x="330" y="290" class="pin">腹地沙漠</text>
+        <text x="570" y="175" class="pin">窄海对岸</text>
+        <!-- 奇观 -->
+        <circle cx="452" cy="120" r="7" fill="#7b6aa0"/><text x="464" y="118" class="pin">龙巢冰原（反常）</text>
+        <circle cx="252" cy="196" r="6" fill="#b3352b"/><text x="264" y="194" class="pin">断脉关</text>
+        <circle cx="196" cy="120" r="5" fill="#3a3730"/><text x="208" y="118" class="pin">三脉城</text>
+        <circle cx="390" cy="262" r="5" fill="#8a8578"/><text x="402" y="260" class="pin">枯脉谷（废）</text>
+      </svg>
+    </div>
+    <div class="legend">
+      <span><i style="background:#8fbf8f"></i>温带雨林</span>
+      <span><i style="background:#d9cfa4"></i>草原</span>
+      <span><i style="background:#c9b98a"></i>沙漠</span>
+      <span><i style="background:#7b6aa0"></i>反常</span>
+      <span><i style="background:#b3352b"></i>关隘</span>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <dl class="kv">
+        <dt>奇观因果</dt><dd>龙巢冰原 ← 吸热龙乌洛斯（半径 40km，边界雾带，龙离开则每年回退 2km）</dd>
+        <dt>当前红灯</dt><dd style="color:var(--err)">敌对势力「河权」「甲部」领地不相邻——打不起来</dd>
+      </dl>
+    </div>`;
+  return p;
+}
+
+function pageChar(){
+  const p = el('div','page');
+  p.innerHTML = `<div class="eyebrow">人物 · C-主角</div>
+    <h2 class="t">抄名匠 · 阿缇</h2>
+    <p class="sub">状态不是标签，是随时间变的段；每段都是一个“欲望 × 底线”的组合。</p>
+    <div class="states">
+      <div class="st"><div class="yr">598 – 605</div><div class="w"><b>想要</b> 活下去<br><b>绝不</b> 偷东西</div></div>
+      <div class="st"><div class="yr">605 – 612</div><div class="w"><b>想要</b> 买回那段记忆<br><b>绝不</b> 伪造记忆</div></div>
+      <div class="st" style="border-color:#cfe0d5"><div class="yr">612 – </div><div class="w"><b>想要</b> 毁掉记忆产业<br><b>绝不</b> ？（被破过一次）</div></div>
+    </div>
+    <div class="card">
+      <div style="font-size:12px;color:var(--faint);margin-bottom:10px">读者认为「觉明」是好人 的置信度</div>
+      <svg viewBox="0 0 640 130" style="width:100%">
+        <line x1="0" y1="110" x2="640" y2="110" stroke="#e7e3d9"/>
+        <polyline points="20,18 150,26 280,34 380,70 470,100 600,116" fill="none" stroke="#2f6f4f" stroke-width="2"/>
+        <circle cx="280" cy="34" r="4" fill="#a8791a"/>
+        <circle cx="380" cy="70" r="4" fill="#a8791a"/>
+        <circle cx="600" cy="116" r="5" fill="#b3352b"/>
+        <text x="20" y="126" font-size="10" fill="#a8a29a">第1章</text>
+        <text x="270" y="126" font-size="10" fill="#a8a29a">第9章（微疑）</text>
+        <text x="560" y="126" font-size="10" fill="#b3352b">第40章（揭示）</text>
+      </svg>
+    </div>`;
+  return p;
+}
+
+function pageChron(){
+  const p = el('div','page');
+  p.innerHTML = `<div class="eyebrow">编年史 · 设定阶段的产物</div>
+    <h2 class="t">时间轴</h2>
+    <p class="sub">这是唯一真相。规划阶段会来切它，但不会改它。</p>`;
+  const box = el('div','card');
+  box.innerHTML = `<dl class="kv">
+    <dt>纪元 611–613</dt><dd><b>断脉关之战</b> — 世界事件 · 河权 / 甲部 / 主角 / 觉明</dd>
+    <dt>真相</dt><dd>河权纵火焚林，自毁隘口北坡</dd>
+    <dt>记载</dt><dd>官史「力战不敌」· 甲部史诗「天火神助」· 民间「关破那年雪是黑的」</dd>
+    <dt>视角</dt><dd>甲部 理解正确度 0.2 · 河权 0.7 · 主角 不知情</dd>
+    <dt>引爆压力</dt><dd>跨境地脉 · 合法性危机</dd>
+  </dl>`;
+  p.appendChild(box);
+  return p;
+}
+
+function pageEvt(){
+  const p = el('div','page');
+  p.innerHTML = `<div class="eyebrow">事件 · 设定阶段的产物</div>
+    <h2 class="t">结总账</h2>
+    <p class="sub">事件过去就过去了，结会留下来——它是后面所有情节的弹药。</p>`;
+  for (const k of knots){
+    const d = el('div','card');
+    d.innerHTML = `<div style="display:flex;justify-content:space-between;font-size:13px">
+        <b>${k.k}</b><span style="font-family:var(--mono);font-size:11.5px;color:var(--faint)">张力 ${k.tension}</span></div>
+      <div class="bar"><i style="width:${k.tension}%"></i></div>
+      <div style="font-size:11.5px;color:var(--faint);margin-top:6px">预计拉扯：${k.where}
+        ${k.warn?`<span style="color:var(--warn)"> · ⚠ ${k.warn}</span>`:''}</div>`;
+    p.appendChild(d);
+  }
+  return p;
+}
+
+function pageOrg(){
+  const p = el('div','page');
+  p.innerHTML = `<div class="eyebrow">组织 · G-教团</div><h2 class="t">教团</h2>
+    <div class="card"><dl class="kv">
+      <dt>目标</dt><dd>垄断记忆来源，维持“还脉”话语权</dd>
+      <dt>资源</dt><dd>无字塔、养老供养体系、内典</dd>
+      <dt>合法性来源</dt><dd>神意（还脉是替死者还债）</dd>
+      <dt>内部派系</dt><dd>清洗者（觉明）· 抄名匠行会 · 反对派</dd>
+      <dt>状态段</dt><dd>纪元 350–611 稳固 · 612– 分裂</dd>
+    </dl></div>`;
+  return p;
+}
+
+/* ---------------- ② 规划 ---------------- */
+function pagePlan(){
+  const wrap = el('div','split');
+
+  const tlw = el('div','tlwrap');
+  tlw.innerHTML = `<div style="display:flex;align-items:baseline;gap:12px;margin-bottom:8px">
+      <b style="font-size:14px">编年史（原料）</b>
+      <span style="font-size:12px;color:var(--faint)">按住拖动框选 → 规划为卷</span>
+    </div>
+    <div class="tl" id="tl">
+      <div class="lane" style="top:0"><div class="lab">世界 / 历史</div><div class="track"></div></div>
+      <div class="lane" style="top:36px"><div class="lab">地区</div><div class="track"></div></div>
+      <div class="lane" style="top:72px"><div class="lab">个人</div><div class="track"></div></div>
+      <div class="sel" id="sel"></div>
+    </div>
+    <div class="axis" id="axis"></div>`;
+  wrap.appendChild(tlw);
+
+  const acts = el('div','planactions');
+  const btn = el('button',null,'规划为卷');
+  btn.disabled = true;
+  const hint = el('span','hintline','');
+  acts.appendChild(btn); acts.appendChild(hint);
+  wrap.appendChild(acts);
+
+  const sbody = el('div','struct');
+  const tree = el('div','tree');
+  for (const v of structure){
+    const vol = el('div','vol');
+    const chs = v.episodes.reduce((n,e)=>n+e.chapters.length,0);
+    vol.innerHTML = `<div class="vh"><b>${v.name}</b><span class="r">纪元 ${v.from}–${v.to}</span>
+        <span class="ph">${v.phase} · ${v.episodes.length} 集 · ${chs} 章</span></div>`;
+    for (const ep of v.episodes){
+      const d = el('div','ep');
+      d.innerHTML = `<div class="eh">${ep.name} <span class="chip">${ep.lines.length} 条线</span>
+        <span class="chip">${ep.lines.join(' / ')}</span></div>`;
+      vol.appendChild(d);
+      for (const c of ep.chapters){
+        const b = el('div','ch',c.name);
+        b.onclick = () => { openChapter = c.id; stage='write'; document.querySelectorAll('.stage').forEach(x=>x.classList.toggle('on', x.dataset.s==='write')); render(); };
+        vol.appendChild(b);
+      }
+    }
+    tree.appendChild(vol);
+  }
+  if (planning){
+    const v = el('div','vol');
+    v.innerHTML = `<div class="vh"><b>卷新 · 未命名</b>
+      <span class="r">纪元 ${planSel.from}–${planSel.to}</span>
+      <span class="ph" style="color:var(--warn)">过渡卷候选</span></div>
+      <div class="ep"><div class="eh">还没有集 · <span class="chip no">从上面选几个事件成集</span></div></div>`;
+    tree.appendChild(v);
+  }
+  sbody.appendChild(tree);
+
+  const side = el('div','side');
+  side.innerHTML = `<h4>未解的结 · 4</h4>` + knots.map(k=>`
+    <div class="knot"><div class="k"><span>${k.k}</span><span style="font-family:var(--mono);font-size:11px;color:var(--faint)">${k.tension}</span></div>
+      <div class="bar"><i style="width:${k.tension}%"></i></div>
+      <div style="color:var(--faint);font-size:11px;margin-top:4px">${k.where}${k.warn?` · <span style="color:var(--warn)">⚠ ${k.warn}</span>`:''}</div>
+    </div>`).join('');
+  sbody.appendChild(side);
+  wrap.appendChild(sbody);
+
+  setTimeout(()=>wireTimeline(btn, hint), 0);
+  return wrap;
+}
+
+function wireTimeline(btn, hint){
+  const tl = document.getElementById('tl');
+  const sel = document.getElementById('sel');
+  const axis = document.getElementById('axis');
+  if (!tl) return;
+
+  const MIN = -450, MAX = 700;
+  const pctOf = (y) => ((y - MIN) / (MAX - MIN)) * 100;
+
+  // 事件条
+  tl.querySelectorAll('.lane').forEach((lane, i) => {
+    const track = lane.querySelector('.track');
+    for (const e of events.filter(e=>e.lane===i)){
+      const d = el('div','ev '+e.scale);
+      d.style.left = pctOf(e.a) + '%';
+      d.style.width = Math.max(pctOf(Math.max(e.b, e.a + 4)) - pctOf(e.a), 0.8) + '%';
+      d.title = `${e.t}（纪元 ${e.a}${e.b!==e.a?'–'+e.b:''}）· ${e.scale}`;
+      track.appendChild(d);
+    }
+  });
+
+  // 轴
+  for (const y of [-400, -200, 0, 200, 400, 600]){
+    const s = el('span',null, String(y));
+    s.style.left = pctOf(y) + '%';
+    axis.appendChild(s);
+  }
+
+  let startX = null;
+  const trackLeft = 72;
+  const toYear = (clientX) => {
+    const r = tl.getBoundingClientRect();
+    const usable = r.width - trackLeft - 8;
+    const ratio = Math.min(Math.max((clientX - r.left - trackLeft) / usable, 0), 1);
+    return Math.round(MIN + ratio * (MAX - MIN));
+  };
+  tl.addEventListener('mousedown', (ev) => {
+    startX = ev.clientX;
+    sel.style.display = 'block';
+    sel.style.left = (startX - tl.getBoundingClientRect().left) + 'px';
+    sel.style.width = '0px';
+  });
+  window.addEventListener('mousemove', (ev) => {
+    if (startX === null) return;
+    const r = tl.getBoundingClientRect();
+    const x = Math.min(Math.max(ev.clientX - r.left, trackLeft), r.width - 8);
+    const x0 = Math.min(Math.max(startX - r.left, trackLeft), r.width - 8);
+    sel.style.left = Math.min(x, x0) + 'px';
+    sel.style.width = Math.abs(x - x0) + 'px';
+  });
+  window.addEventListener('mouseup', (ev) => {
+    if (startX === null) return;
+    const a = toYear(Math.min(startX, ev.clientX));
+    const b = toYear(Math.max(startX, ev.clientX));
+    startX = null;
+    if (b - a < 3){ sel.style.display='none'; return; }
+    planSel = { from:a, to:b };
+
+    const inside = events.filter(e => e.b >= a && e.a <= b);
+    const worlds = inside.filter(e => e.scale==='world');
+    btn.disabled = false;
+    if (worlds.length === 0){
+      hint.className = 'hintline';
+      hint.textContent = `纪元 ${a}–${b}：这段里没有世界级事件，这会是一个过渡卷（允许，但诊断会提醒）`;
+    } else {
+      hint.className = 'hintline ok';
+      hint.textContent = `纪元 ${a}–${b}：含 ${worlds.length} 个世界事件 ＋ ${inside.length - worlds.length} 个地区/个人事件`;
+    }
+    btn.onclick = () => { planning = true; render(); };
+  });
+}
+
+/* ---------------- ③ 创作 ---------------- */
+function pageWrite(){
+  const p = el('div','pipe');
+  p.innerHTML = `
+    <div class="eyebrow">卷二 · 集 15 · 第 78 章</div>
+    <h2 class="t">擂台</h2>
+    <p class="sub">这一屏是唯一真正写字的地方；上面四步都是为它准备材料。</p>
+
+    <div class="step"><div class="sh"><span class="num">1</span>章简报（自动汇聚）</div>
+      <div class="sb">
+        <div class="chips">
+          <span class="chip">线 A 主角 × 线 B 旧敌</span>
+          <span class="chip">拉扯结：仇 · 河权→甲部</span>
+          <span class="chip">新问题：旧敌怎么知道她父亲的名字</span>
+          <span class="chip no">禁止：不出现主办方的人</span>
+        </div>
+      </div></div>
+
+    <div class="step"><div class="sh"><span class="num">2</span>场景拆解</div>
+      <div class="sb">
+        <div class="scene">
+          <div><b>目标</b>她要在不露底牌的情况下赢</div>
+          <div><b>障碍</b>旧敌比她高两阶</div>
+          <div><b>转折</b>第二回合她被迫用出“记住名字”</div>
+          <div><b>结果</b>赢了，但漏了一半底牌</div>
+        </div>
+      </div></div>
+
+    <div class="step"><div class="sh"><span class="num">3</span>排演 · 场记（勾选采纳）</div>
+      <div class="sb transcript">
+        <div><span class="pick">☑</span><span class="who">旧敌</span>你父亲的名字，我记得。</div>
+        <div><span class="pick">☑</span><span class="who">阿缇</span>（她没有停手）</div>
+        <div><span class="pick">☐</span><span class="who">旧敌</span>你连他叫什么都不知道吧。</div>
+        <div><span class="pick">☑</span><span class="who">阿缇</span>……你再说一遍。</div>
+        <div style="font-size:11.5px;color:var(--warn);font-family:var(--sans);margin-top:8px">
+          ⚠ 第三句踩了“禁止项”：提到了主办方的名字。冲突。</div>
+      </div></div>
+
+    <div class="step"><div class="sh"><span class="num">4</span>成稿</div>
+      <div class="sb" style="font-family:var(--serif);font-size:15.5px;line-height:2;color:var(--muted)">
+        她左手袖口裂开的时候，台上的人先看见了里面的字。<br>
+        <span style="color:var(--faint);font-size:12.5px">（编辑区 · 你在这里写）</span>
+      </div></div>
+
+    <div class="step"><div class="sh"><span class="num">5</span>写后核验（与第 1 步同一张清单）</div>
+      <div class="sb" style="font-size:12.5px;color:var(--muted)">
+        改变了吗 ✓　新问题留了吗 ✓　结拉扯了吗 ✓　禁止项碰了吗 <span style="color:var(--warn)">✗</span>
+      </div></div>`;
+  return p;
+}
+
+/* ---------------- 渲染 ---------------- */
+function render(){
+  renderRail();
+  main.innerHTML = '';
+  let page;
+  if (stage === 'set'){
+    page = sys==='world'?pageWorld():sys==='geo'?pageGeo():sys==='char'?pageChar():
+           sys==='org'?pageOrg():sys==='chron'?pageChron():pageEvt();
+  } else if (stage === 'plan'){
+    page = pagePlan();
+  } else {
+    page = pageWrite();
+  }
+  main.appendChild(page);
+}
+
+render();
+</script>
+</body>
+</html>
