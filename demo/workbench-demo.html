@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>小说工作台 · UI Demo</title>
+<style>
+  :root{
+    --bg:#fbfaf7; --panel:#fffefb; --ink:#22201c; --muted:#6d6760; --faint:#a8a29a;
+    --line:#e7e3d9; --line-soft:#f2efe7;
+    --accent:#2f6f4f; --accent-soft:#e8f0ea;
+    --err:#b3352b; --err-soft:#fbeceb;
+    --warn:#a8791a; --warn-soft:#fdf4e3;
+    --info:#7c7870; --info-soft:#f4f2ee;
+    --serif:"Songti SC","Noto Serif SC",Georgia,serif;
+    --sans:-apple-system,"Segoe UI","Microsoft YaHei",system-ui,sans-serif;
+    --mono:"SFMono-Regular",Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;-webkit-font-smoothing:antialiased}
+  .app{display:flex;height:100vh;overflow:hidden}
+
+  /* ---------- 侧栏 ---------- */
+  .side{width:252px;flex:0 0 252px;border-right:1px solid var(--line);display:flex;flex-direction:column;background:var(--panel)}
+  .brand{padding:14px 16px 10px;border-bottom:1px solid var(--line-soft)}
+  .brand h1{margin:0;font-size:15px;font-weight:600;letter-spacing:.02em}
+  .brand .sub{color:var(--faint);font-size:12px;margin-top:3px}
+  .nav{display:flex;flex-wrap:wrap;gap:4px;padding:10px 12px;border-bottom:1px solid var(--line-soft)}
+  .nav button{border:1px solid transparent;background:none;color:var(--muted);font:inherit;font-size:12.5px;
+    padding:5px 9px;border-radius:6px;cursor:pointer}
+  .nav button:hover{background:var(--line-soft);color:var(--ink)}
+  .nav button.on{background:var(--accent-soft);color:var(--accent);border-color:#cfe0d5;font-weight:600}
+  .list{overflow:auto;flex:1;padding:6px 0}
+  .grp{padding:10px 16px 4px;color:var(--faint);font-size:11px;letter-spacing:.08em}
+  .row{padding:7px 16px;cursor:pointer;display:flex;align-items:center;gap:8px;border-left:2px solid transparent}
+  .row:hover{background:var(--line-soft)}
+  .row.on{background:var(--accent-soft);border-left-color:var(--accent)}
+  .row .t{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .dot{width:6px;height:6px;border-radius:50%;flex:0 0 6px}
+  .dot.err{background:var(--err)} .dot.warn{background:var(--warn)} .dot.ok{background:#c9c4ba}
+  .side .foot{padding:10px 16px;border-top:1px solid var(--line-soft);color:var(--warn);font-size:11.5px;line-height:1.5}
+
+  /* ---------- 主区 ---------- */
+  .main{flex:1;overflow:auto;display:flex;justify-content:center}
+  .page{width:100%;max-width:820px;padding:34px 40px 80px}
+  .eyebrow{color:var(--faint);font-size:11px;letter-spacing:.1em;margin-bottom:10px}
+  h2.title{font-size:26px;margin:0 0 6px;font-weight:600;font-family:var(--serif)}
+  .prop{color:var(--muted);font-size:13.5px;border-left:2px solid var(--line);padding-left:10px;margin:10px 0 22px;
+    display:flex;gap:8px;align-items:baseline}
+  .prop .txt{flex:1}
+  .prop button{border:none;background:none;color:var(--accent);cursor:pointer;font-size:12px}
+  .prose{font-family:var(--serif);font-size:16.5px;line-height:1.95;letter-spacing:.01em}
+  .prose p{margin:0 0 1.1em}
+  .meta{margin-top:28px;border:1px solid var(--line);border-radius:10px;background:var(--panel);overflow:hidden}
+  .meta summary{cursor:pointer;padding:10px 14px;font-size:12.5px;color:var(--muted);list-style:none}
+  .meta summary::-webkit-details-marker{display:none}
+  .meta summary::before{content:"▸ ";color:var(--faint)}
+  .meta[open] summary::before{content:"▾ "}
+  .fields{padding:4px 14px 14px;display:grid;grid-template-columns:96px 1fr;gap:8px 14px;font-size:12.5px}
+  .fields dt{color:var(--faint)}
+  .fields dd{margin:0;color:var(--ink)}
+  .tag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:999px;border:1px solid var(--line);
+    color:var(--muted);background:var(--bg);margin-right:5px}
+  .tag.hard{border-color:#d9c3bf;background:var(--err-soft);color:#8d332a}
+  .tag.firm{border-color:#e3d2b4;background:var(--warn-soft);color:var(--warn)}
+  .tag.myth{border-color:#d8d3e3;background:#f3f1f7;color:#5f5776}
+  .refs{margin-top:16px;font-size:12.5px;color:var(--muted);line-height:1.8}
+  .refs b{color:var(--ink);font-weight:600}
+
+  /* ---------- 卡片墙 ---------- */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+  .card{border:1px solid var(--line);border-radius:10px;padding:14px;background:var(--panel);cursor:pointer;
+    display:flex;flex-direction:column;gap:6px;min-height:118px}
+  .card:hover{border-color:#cfc9bc;box-shadow:0 1px 6px rgba(0,0,0,.04)}
+  .card .h{font-weight:600;font-size:14px}
+  .card .b{color:var(--muted);font-size:12.5px;line-height:1.6;flex:1}
+  .card .f{display:flex;gap:6px;align-items:center;font-size:11px;color:var(--faint)}
+  .badge{font-size:11px;padding:1px 6px;border-radius:4px}
+  .badge.w{background:var(--warn-soft);color:var(--warn)}
+  .badge.e{background:var(--err-soft);color:var(--err)}
+  .badge.g{background:#eef4f0;color:var(--accent)}
+
+  /* ---------- 诊断 ---------- */
+  .fnd{border:1px solid var(--line);border-radius:10px;background:var(--panel);margin-bottom:10px;overflow:hidden}
+  .fnd .hd{display:flex;gap:9px;align-items:baseline;padding:11px 14px;border-left:3px solid var(--line)}
+  .fnd.err .hd{border-left-color:var(--err)} .fnd.warn .hd{border-left-color:var(--warn)} .fnd.info .hd{border-left-color:#cfc9bc}
+  .fnd .rule{font-family:var(--mono);font-size:11.5px;color:var(--faint);flex:0 0 auto}
+  .fnd .msg{font-size:13.5px}
+  .fnd .hint{padding:0 14px 10px 41px;color:var(--muted);font-size:12.5px}
+  .fnd .acts{padding:0 14px 12px 41px;display:flex;gap:6px;flex-wrap:wrap}
+  .fnd .acts button{border:1px solid var(--line);background:var(--bg);border-radius:6px;font:inherit;
+    font-size:12px;padding:3px 9px;cursor:pointer;color:var(--ink)}
+  .fnd .acts button:hover{border-color:var(--accent);color:var(--accent)}
+  .fnd .acts .ghost{border-color:transparent;color:var(--faint)}
+
+  /* ---------- 时间轴 ---------- */
+  .tl-ctl{display:flex;align-items:center;gap:14px;margin:6px 0 26px}
+  input[type=range]{width:420px;accent-color:var(--accent)}
+  .year{font-family:var(--mono);font-size:13px;color:var(--accent);font-weight:600}
+  .lane{display:grid;grid-template-columns:200px 1fr;gap:14px;align-items:center;padding:5px 0;border-bottom:1px dashed var(--line-soft)}
+  .lane .n{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .track{position:relative;height:20px;background:linear-gradient(var(--line-soft),var(--line-soft)) center/100% 1px no-repeat}
+  .bar{position:absolute;top:4px;height:12px;border-radius:3px;background:#bcd6c5}
+  .bar.gone{background:#e6e1d6}
+  .bar.myth{background:#d8d3e3}
+  .bar.firm{background:#e6d3ae}
+  .mark{position:absolute;top:-2px;width:0;border-left:1px solid var(--accent);height:24px}
+  .yearlab{display:flex;justify-content:space-between;color:var(--faint);font-size:11px;font-family:var(--mono);
+    margin-left:214px;margin-top:6px}
+
+  .hintbar{max-width:820px;margin:0 auto;padding:10px 40px;color:var(--faint);font-size:12px}
+  .frag{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:14px 16px;margin-top:14px;
+    font-family:var(--serif);font-size:15px;line-height:2}
+  .frag .lk{color:var(--accent);border-bottom:1px dashed #b9d2c4;cursor:pointer}
+  .frag .lk.miss{color:var(--err);border-bottom-color:#e3b7b2}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand">
+      <h1>小说工作台</h1>
+      <div class="sub">记忆之世 · 3 公理 · 15 条目</div>
+    </div>
+    <nav class="nav" id="nav">
+      <button data-v="entry" class="on">条目</button>
+      <button data-v="cards">卡片墙</button>
+      <button data-v="find">诊断 <span style="color:var(--err)">6</span></button>
+      <button data-v="time">时间轴</button>
+      <button data-v="frag">片段</button>
+    </nav>
+    <div class="list" id="list"></div>
+    <div class="foot">未定义专名：玄天大帝</div>
+  </aside>
+
+  <main class="main" id="main"></main>
+</div>
+
+<script>
+const nodes = [
+  {id:'W-AX-001', kind:'axiom', title:'记忆是燃料', strength:'hard',
+   span:'纪元前 1200 — 至今', cost:['记忆','身份','亲情'],
+   prop:'施法会永久烧毁施法者的记忆，烧毁量与法术强度成正比。',
+   body:['施法会永久烧毁施法者的记忆，烧毁量与法术强度成正比。',
+         '这条规则不是秘密，是常识——就像我们知道火会烫手。但它带来的后果，大多数人不去想。'],
+   derives:['法师无法世袭','记忆当铺','收养制传承'],
+   manifests:['还脉礼','欠名录','无字塔','抄名匠'], findings:[]},
+
+  {id:'W-AX-002', kind:'axiom', title:'地脉有限', strength:'hard',
+   span:'纪元前 1200 — 至今', cost:['土地','王朝'],
+   prop:'超凡力量取自地脉，地脉会被抽干且几乎不可再生。', body:['地脉会被抽干。几乎不可再生。'],
+   derives:['三脉城','枯脉谷'], manifests:['井水发苦'], findings:['R12']},
+
+  {id:'W-AX-003', kind:'axiom', title:'法师记不住亲人', strength:'hard',
+   span:'纪元前 1200 — 至今', cost:['血缘'], prop:'长期施法者无法保留与自己血缘相关的记忆。', body:['……'],
+   derives:['收养制'], manifests:['还脉礼'], findings:[]},
+
+  {id:'E-MF-004', kind:'entry', title:'还脉礼', strength:'soft',
+   span:'纪元 300 — 至今', cost:['—'], prop:'亲属替临终法师逐条念出其一生所施之法，以偿其债。',
+   body:['法师临终前，亲属替他把一生施过的法逐条念出，算是替他还债。',
+         '念的人不能是法师自己——他记不住。所以这场葬礼真正的主角是念的人，而不是死的人。念错一条，死者就算欠着，家族要替他继续欠下去。'],
+   derives:['记忆是燃料'], manifests:[], findings:[]},
+
+  {id:'E-MF-005', kind:'entry', title:'欠名录', strength:'soft',
+   span:'—', cost:['—'], prop:'法师把每个求他施法的人名缝在袖口，怕自己忘了欠过谁。',
+   body:['他把袖子往上捋了捋，欠名录上又多了三个名字。'], derives:[], manifests:[], findings:['R4']},
+
+  {id:'E-MF-006', kind:'entry', title:'无字塔', strength:'soft', span:'—', cost:['—'],
+   prop:'城里最高的建筑，里面全是什么都不记得的老法师。', body:['塔里没有字。'],
+   derives:[], manifests:[], findings:['R4','R5']},
+
+  {id:'E-MF-007', kind:'entry', title:'抄名匠', strength:'soft', span:'—', cost:['—'],
+   prop:'专替人默写记忆的匠人，地位极低但谁都离不开。', body:['……'], derives:[], manifests:[], findings:['R4']},
+
+  {id:'E-IS-002', kind:'entry', title:'脉正', strength:'firm', span:'纪元 412 — 720', cost:['—'],
+   prop:'掌地脉分配的官职，权力极大且人人痛恨。',
+   body:['脉正换到第九任了。'], derives:['地脉有限'], manifests:[], findings:['R7','R2']},
+
+  {id:'E-MY-001', kind:'entry', title:'玄帝断三脉', strength:'myth', span:'纪元 300 — 至今', cost:['—'],
+   prop:'民间传说玄帝一怒断三脉，后被众神所罚；此说实为伪造。',
+   body:['他曾一统天下，三个月后就忘了自己当过皇帝。'], derives:[], manifests:[], findings:['R3','R6']},
+
+  {id:'E-IS-004', kind:'entry', title:'法师不得为己施法', strength:'firm', span:'纪元 500 — 至今', cost:['—'],
+   prop:'教团明令禁止法师为自己施法，实际每年都有人偷偷做。',
+   body:['被抓住就废籍。'], derives:['记忆是燃料'], manifests:[], findings:['R2']},
+
+  {id:'E-DV-001', kind:'entry', title:'法师无法世袭', strength:'hard', span:'纪元前 1200 — 至今', cost:['—'],
+   prop:'法师记不住自己的孩子，因此阶层不能靠血缘传承。',
+   body:['只能靠收养。'], derives:['记忆是燃料','法师记不住亲人'], manifests:[], findings:[]},
+];
+
+const findings = [
+  {sev:'err', rule:'R7', msg:'派生链断裂：「脉正」的生效区间超出公理「地脉有限」', ids:['E-IS-002','W-AX-002'],
+   hint:'公理已经终止，依赖它的条目却还在。', acts:['指定新公理','截断条目区间','忽略']},
+  {sev:'err', rule:'R6', msg:'同一名称在重叠时间内指向两个条目：「玄帝」与「玄天大帝」', ids:['E-MY-001'],
+   hint:'合并，或加时间/地域限定。', acts:['合并为同一实体','加时间限定']},
+  {sev:'warn', rule:'R2', msg:'「法师不得为己施法」写了有人违反，但没有登记后果', ids:['E-IS-004'],
+   hint:'破规矩要付代价：补一个后果条目，或降级为 soft。', acts:['补后果条目','降级为 soft']},
+  {sev:'warn', rule:'R4', msg:'「欠名录」「无字塔」「抄名匠」没有公理支撑，也没有被任何主体需要', ids:['E-MF-005','E-MF-006','E-MF-007'],
+   hint:'它从哪条公理长出来的？指定一条，或标记为设定装饰。', acts:['指定公理','标记为设定装饰']},
+  {sev:'warn', rule:'R12', msg:'公理「地脉有限」只有 1 个可感知表现（铁律二要求 ≥2）', ids:['W-AX-002'],
+   hint:'读者看不见这条公理。', acts:['给我三个表现候选']},
+  {sev:'info', rule:'R3', msg:'「玄帝断三脉」与硬法则「地脉有限」冲突——这是设定好的误会吗？', ids:['E-MY-001','W-AX-002'],
+   hint:'谁在撒这个谎，他得到什么？', acts:['生成认知记录','标记为民间误传']},
+  {sev:'info', rule:'R5', msg:'7 条设定从未进入正文：还脉礼、无字塔、抄名匠…', ids:[],
+   hint:'要么用，要么删。', acts:[]},
+];
+
+const fragText = [
+  '他把袖子往上捋了捋，[[欠名录]]上又多了三个名字。',
+  '「[[玄帝]]断三脉那年，[[脉正]]换到第九任了。」老人说。',
+  '她没接话。她只是记住了老人袖口的针脚，一共九道。'
+];
+
+const timeline = [
+  {n:'记忆是燃料（公理）', a:-1200, b:null, cls:''},
+  {n:'地脉有限（公理）', a:-1200, b:null, cls:''},
+  {n:'脉正', a:412, b:720, cls:'firm'},
+  {n:'记忆当铺', a:588, b:null, cls:''},
+  {n:'禁法运动', a:572, b:600, cls:'gone'},
+  {n:'还脉礼', a:300, b:null, cls:''},
+  {n:'玄帝传说（民间以为真）', a:300, b:null, cls:'myth'},
+  {n:'断脉关之战', a:611, b:613, cls:'gone'},
+];
+
+let view = 'entry';
+let currentId = 'E-MF-004';
+
+const $ = (s) => document.querySelector(s);
+const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+
+function strengthTag(s){
+  const map = {hard:'硬法则', firm:'可违反但留痕', soft:'风味', myth:'民间说法'};
+  return `<span class="tag ${s}">${map[s]||s}</span>`;
+}
+
+function renderList(){
+  const list = $('#list'); list.innerHTML = '';
+  const g1 = el('div','grp','公理'); list.appendChild(g1);
+  for (const n of nodes.filter(n=>n.id.startsWith('W-'))) list.appendChild(rowFor(n));
+  const g2 = el('div','grp','条目'); list.appendChild(g2);
+  for (const n of nodes.filter(n=>n.id.startsWith('E-'))) list.appendChild(rowFor(n));
+}
+
+function rowFor(n){
+  const r = el('div','row'+(n.id===currentId?' on':''));
+  const d = el('span','dot '+(n.findings.some(f=>f==='R7'||f==='R6')?'err':n.findings.length?'warn':'ok'));
+  r.appendChild(d);
+  r.appendChild(el('span','t',n.title));
+  r.onclick = () => { currentId = n.id; view='entry'; render(); };
+  return r;
+}
+
+function renderEntry(){
+  const n = nodes.find(x=>x.id===currentId) || nodes[0];
+  const page = el('div','page');
+  page.innerHTML = `
+    <div class="eyebrow">${n.kind==='axiom'?'公理':'条目'} · ${n.id}</div>
+    <h2 class="title">${n.title}</h2>
+    <div class="prop"><span class="txt">${n.prop}</span><button>✎ 改</button></div>
+    <div class="prose">${n.body.map(p=>`<p>${p}</p>`).join('')}</div>
+
+    <details class="meta">
+      <summary>结构字段与关联</summary>
+      <dl class="fields">
+        <dt>强度</dt><dd>${strengthTag(n.strength)}</dd>
+        <dt>生效区间</dt><dd>${n.span}</dd>
+        <dt>代价</dt><dd>${n.cost.join('、')}</dd>
+        <dt>派生</dt><dd>${n.derives.length?n.derives.map(d=>`<span class="tag">${d}</span>`).join(''):'<span style="color:var(--faint)">无</span>'}</dd>
+        <dt>表现</dt><dd>${n.manifests.length?n.manifests.map(d=>`<span class="tag">${d}</span>`).join(''):'<span style="color:var(--faint)">无</span>'}</dd>
+      </dl>
+    </details>
+
+    <div class="refs">
+      <div>被片段引用：<b>第03章-02</b></div>
+      <div>被条目引用：${n.id==='W-AX-001'?'法师无法世袭（derives）、还脉礼（manifests）等 4 处':'<span style="color:var(--faint)">无</span>'}</div>
+    </div>`;
+  return page;
+}
+
+function renderCards(){
+  const page = el('div','page');
+  page.innerHTML = `<div class="eyebrow">浏览</div><h2 class="title" style="font-size:20px;margin-bottom:18px">卡片墙</h2>`;
+  const grid = el('div','grid');
+  for (const n of nodes){
+    const c = el('div','card');
+    const badge = n.findings.includes('R7')||n.findings.includes('R6') ? '<span class="badge e">有硬伤</span>'
+      : n.findings.includes('R4') ? '<span class="badge w">无公理支撑</span>'
+      : n.findings.length ? '<span class="badge w">待办</span>' : '<span class="badge g">已引用</span>';
+    c.innerHTML = `<div class="h">${n.title}</div><div class="b">${n.prop}</div>
+      <div class="f">${badge}<span>${n.id}</span></div>`;
+    c.onclick = () => { currentId = n.id; view='entry'; render(); };
+    grid.appendChild(c);
+  }
+  page.appendChild(grid);
+  return page;
+}
+
+function renderFindings(){
+  const page = el('div','page');
+  page.innerHTML = `<div class="eyebrow">体检</div><h2 class="title" style="font-size:20px">诊断清单 · ${findings.length}</h2>
+    <p style="color:var(--muted);font-size:13px;margin:4px 0 20px">每一条都来自数据，不是模型感觉。</p>`;
+  for (const f of findings){
+    const box = el('div','fnd '+f.sev);
+    box.innerHTML = `<div class="hd"><span class="rule">${f.rule}</span><span class="msg">${f.msg}</span></div>
+      <div class="hint">${f.hint}</div>
+      <div class="acts">${f.acts.map(a=>`<button>${a}</button>`).join('')}
+        <button class="ghost">第 12 章 第 3 段</button></div>`;
+    page.appendChild(box);
+  }
+  return page;
+}
+
+function renderTimeline(){
+  const page = el('div','page');
+  const MIN=-1200, MAX=800;
+  const pct = (y)=> ((y-MIN)/(MAX-MIN))*100;
+  page.innerHTML = `<div class="eyebrow">时间</div><h2 class="title" style="font-size:20px">时间轴</h2>
+    <div class="tl-ctl">
+      <input id="yr" type="range" min="${MIN}" max="${MAX}" value="612">
+      <span class="year" id="yrlab">纪元 612 年</span>
+    </div>
+    <div id="lanes"></div>
+    <div class="yearlab"><span>纪元前 1200</span><span>0</span><span>800</span></div>`;
+  const lanes = page.querySelector('#lanes');
+  for (const t of timeline){
+    const lane = el('div','lane');
+    const left = pct(t.a), right = t.b===null?100:pct(t.b);
+    lane.innerHTML = `<div class="n">${t.n}</div>
+      <div class="track"><div class="bar ${t.cls}" style="left:${left}%;width:${Math.max(right-left,0.6)}%"></div>
+      <div class="mark" data-m></div></div>`;
+    lanes.appendChild(lane);
+  }
+  const upd = (v) => {
+    page.querySelector('#yrlab').textContent = `纪元 ${v} 年`;
+    for (const m of page.querySelectorAll('.mark')) m.style.left = pct(Number(v)) + '%';
+  };
+  page.querySelector('#yr').addEventListener('input', (e)=>upd(e.target.value));
+  setTimeout(()=>upd(612), 0);
+  return page;
+}
+
+function renderFrag(){
+  const page = el('div','page');
+  page.innerHTML = `<div class="eyebrow">正文草稿</div><h2 class="title" style="font-size:20px">第03章 · 第 2 段</h2>
+    <p style="color:var(--muted);font-size:13px">正文里的 <span style="color:var(--accent)">[[双链]]</span> 就是引用；未定义的专名标红。</p>`;
+  const box = el('div','frag');
+  box.innerHTML = fragText.map(p => p
+    .replace(/\[\[([^\]]+)\]\]/g, (_, t) => `<span class="lk ${t==='玄天大帝'?'miss':''}">${t}</span>`)
+  ).join('<br>');
+  page.appendChild(box);
+  const note = el('div','refs');
+  note.innerHTML = `<div>解析出 <b>3</b> 条引用：欠名录 ✓、玄帝 ✓、脉正 ✓</div>
+    <div style="color:var(--warn)">未定义专名：玄天大帝 — <span style="color:var(--accent);cursor:pointer">建立条目</span></div>`;
+  page.appendChild(note);
+  return page;
+}
+
+function render(){
+  document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('on', b.dataset.v===view));
+  renderList();
+  const main = $('#main'); main.innerHTML = '';
+  const page = view==='entry'?renderEntry():view==='cards'?renderCards():
+               view==='find'?renderFindings():view==='time'?renderTimeline():renderFrag();
+  main.appendChild(page);
+}
+
+document.querySelectorAll('#nav button').forEach(b => b.onclick = () => { view = b.dataset.v; render(); });
+render();
+</script>
+</body>
+</html>
