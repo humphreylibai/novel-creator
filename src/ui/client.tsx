@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 let open = false;
 const listeners = new Set<(v: boolean) => void>();
@@ -9,7 +9,11 @@ export function toggleWorkbench(next?: boolean) {
 
 export function Launcher() {
   const [visible, setVisible] = useState(open);
-  listeners.add(setVisible);
+  useEffect(() => {
+    const fn = (v: boolean) => setVisible(v);
+    listeners.add(fn);
+    return () => { listeners.delete(fn); };
+  }, []);
   return (
     <>
       <button onClick={() => toggleWorkbench()} style={{
@@ -41,9 +45,16 @@ function Workbench() {
   );
 }
 
+interface ClientCtx {
+  slots: {
+    inject(name: string, fn: () => unknown): void;
+    register(options: Record<string, unknown>, component: unknown): unknown;
+  };
+}
+
 export const inject = ['slots'];
 
-export function apply(ctx: any) {
+export function apply(ctx: ClientCtx) {
   ctx.slots.inject('shell.overlay', () => ctx.slots.register(
     { name: 'shell.overlay', id: 'novel-workbench-launcher', order: 20 },
     Launcher

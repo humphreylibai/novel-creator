@@ -1,7 +1,6 @@
 {
   "meta": {
     "title": "Novel workbench",
-    "description": "Manages world settings as an assertion graph: axioms, entries, citations, and consistency checks.",
-    "detail": "docs/plugin/DETAIL.md"
+    "description": "Minimal probe: registers /novel/ping and a workbench overlay launcher inside the DSH web page."
   }
 }

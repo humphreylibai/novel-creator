@@ -1,7 +1,6 @@
 {
   "meta": {
     "title": "小说工作台",
-    "description": "以断言图管理世界设定：公理、条目、引用与一致性体检。",
-    "detail": "docs/plugin/DETAIL.md"
+    "description": "最小探针：在 DSH 网页内注册 /novel/ping 与一个工作台浮层入口。"
   }
 }

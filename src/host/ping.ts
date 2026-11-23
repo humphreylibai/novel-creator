@@ -1,7 +1,11 @@
-import { readFileSync } from 'node:fs';
-
 export const VERSION = '0.1.0';
 
-export function pingHandler(root: string) {
-  return () => ({ ok: true as const, dataRoot: root, version: VERSION });
+export interface PingPayload {
+  ok: true;
+  dataRoot: string;
+  version: string;
+}
+
+export function pingPayload(dataRoot: string): PingPayload {
+  return { ok: true, dataRoot, version: VERSION };
 }

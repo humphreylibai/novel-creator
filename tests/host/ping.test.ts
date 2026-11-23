@@ -1,10 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { pingHandler } from '../../src/host/ping';
+import { pingPayload } from '../../src/host/ping';
 
-describe('ping', () => {
+describe('ping payload', () => {
   it('回显数据根目录与版本', () => {
-    const ping = pingHandler('/tmp/novel-data');
-    const r = ping();
+    const r = pingPayload('/tmp/novel-data');
     expect(r.ok).toBe(true);
     expect(r.dataRoot).toBe('/tmp/novel-data');
     expect(typeof r.version).toBe('string');

@@ -1,16 +1,31 @@
-// 已验证（2026-11-23，DSH desktop profile）：ctx.webServer.register 接受
-// Node 风格 handler。若后续版本形状变化，只修改这一个文件，不要把适配逻辑复制到别处。
+// 已验证（2026-11-23，desktop profile）：ctx.webServer.register({ path, kind: 'exact', handler(req, res) }) 生效，
+// GET /novel/ping 返回 200 {"ok":true,"dataRoot":"D:\\code\\novel\\data","version":"0.1.0"}。
+// 整路由形状仍是待验证部分；若后续路由不通，只改这一个文件。
 import { mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { resolveDataRoot } from './dataRoot.js';
+import { pingPayload } from './ping.js';
 
 export interface PluginConfig { dataRoot: string }
 
 export const inject = ['webServer'];
 
+interface PingRoute {
+  path: string;
+  kind: 'exact' | 'prefix';
+  handler: (req: any, res: any) => void;
+}
+
+export interface HostCtx {
+  webServer?: {
+    register(route: PingRoute): () => void;
+  };
+  effect(fn: () => () => void): void;
+}
+
 /** DSH 只在这里出现：路由注册与错误兜底。 */
-export function apply(ctx: any, config: PluginConfig): void {
+export function apply(ctx: HostCtx, config: PluginConfig): void {
   const web = ctx.webServer;
   if (!web?.register) {
     console.warn('[novel] webServer 不可用，工作台未挂载');
@@ -29,11 +44,13 @@ export function apply(ctx: any, config: PluginConfig): void {
     path: '/novel/ping',
     kind: 'exact',
     handler: (_req: any, res: any) => {
-      const payload = dataRootError
-        ? { ok: false, error: `数据目录不可用：${dataRootError}`, dataRoot, version: '0.1.0' }
-        : { ok: true, dataRoot, version: '0.1.0' };
-      res.writeHead(dataRootError ? 500 : 200, { 'content-type': 'application/json; charset=utf-8' });
-      res.end(JSON.stringify(payload));
+      if (dataRootError) {
+        res.writeHead(500, { 'content-type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: `数据目录不可用：${dataRootError}` }));
+        return;
+      }
+      res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify(pingPayload(dataRoot)));
     }
   }));
 }
