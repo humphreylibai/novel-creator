@@ -26,9 +26,21 @@ const arr = (v: unknown): string[] => {
 const numOrNull = (v: unknown): number | null =>
   typeof v === 'number' && Number.isFinite(v) ? v : null;
 
-function toExtra(data: Record<string, unknown>): Record<string, unknown> {
+/** 直接赋值会走原型 setter / 污染原型链的键，一律不进 extra。 */
+const UNSAFE_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
+const isPlainRecord = (v: unknown): v is Record<string, unknown> =>
+  typeof v === 'object' && v !== null && !Array.isArray(v);
+
+function toExtra(data: unknown): Record<string, unknown> {
+  // 非 mapping（null / 数组 / 标量）没有「未知键」：否则字符串与数组会被拆成 '0'、'1' 字符索引键
+  if (!isPlainRecord(data)) return {};
   const extra: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(data)) if (!KNOWN_KEYS.has(k)) extra[k] = v;
+  for (const [k, v] of Object.entries(data)) {
+    // 跳过不安全键：extra['__proto__'] = v 会静默丢失该键并改写 extra 的原型
+    if (KNOWN_KEYS.has(k) || UNSAFE_KEYS.has(k)) continue;
+    extra[k] = v;
+  }
   return extra;
 }
 

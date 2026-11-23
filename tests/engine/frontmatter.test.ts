@@ -85,4 +85,28 @@ describe('front matter 编解码', () => {
     expect(n.kind).toBe('axiom');
     expect(n.strength).toBe('hard');
   });
+
+  it('标量 front matter 不产生字符索引键', () => {
+    const n = parseNode('---\n记忆即燃料\n---\n正文', 'nodes/散.md');
+    expect(n.extra).toEqual({});
+    expect(n.body).toBe('正文');
+    expect(n.kind).toBe('entry');
+  });
+
+  it('序列 front matter 不产生索引键且往返不变成 map', () => {
+    const n = parseNode('---\n- a\n- b\n---\n正文', 'nodes/列表.md');
+    expect(n.extra).toEqual({});
+    expect(n.body).toBe('正文');
+    const again = parseNode(serializeNode(n), n.file);
+    expect(again.extra).toEqual({});
+    expect(Object.keys(again.extra)).not.toContain('0');
+  });
+
+  it('原型相关键不进 extra，也不污染原型', () => {
+    const n = parseNode('---\n__proto__: { polluted: true }\nid: E-1\n---\n正文', 'nodes/原型.md');
+    expect(Object.prototype.hasOwnProperty.call(n.extra, '__proto__')).toBe(false);
+    expect(Object.getPrototypeOf(n.extra)).toBe(Object.prototype);
+    expect(({} as Record<string, unknown>)['polluted']).toBeUndefined();
+    expect(n.id).toBe('E-1');
+  });
 });
