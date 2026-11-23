@@ -1,0 +1,9 @@
+id: 记忆之世
+title: 记忆之世
+genre: { allowed: [超自然], forbidden: [], expectation: '' }
+calendar:
+  epochs: [{ name: 新历, start: 1, end: null }]
+  format: "新历{year}年"
+theme:
+  wound: 一个靠抽干世界来维持秩序的世界
+  motif: 记忆即代价
