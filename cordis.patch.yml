@@ -1,0 +1,5 @@
+- insert:
+    - id: novel-workbench
+      name: '@local/novel-workbench'
+      config:
+        dataRoot: ''

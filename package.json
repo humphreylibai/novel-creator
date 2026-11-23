@@ -1,0 +1,36 @@
+{
+  "name": "@local/novel-workbench",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Novel workbench: assertion-graph worldbuilding inside DSH.",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": ["index.js", "client.js", "lib", "cordis.patch.yml", "locale/*.json", "docs", "icon.svg"],
+  "dsh": {
+    "bundle": { "patch": "./cordis.patch.yml" },
+    "client": {
+      "platform": "web",
+      "immediately": false,
+      "inject": ["@deepseek-ai/dsh-client-ui-layout"]
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && node scripts/build-client.mjs",
+    "test": "vitest run",
+    "check": "tsx src/host/cli.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.4",
+    "@types/react": "^18.3.11",
+    "esbuild": "^0.24.0",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.2",
+    "vitest": "^2.1.2",
+    "yaml": "^2.5.1"
+  }
+}
