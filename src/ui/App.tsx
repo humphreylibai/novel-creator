@@ -1,0 +1,280 @@
+import { useCallback, useEffect, useState } from 'react';
+import { listNodes, listWorlds, readNode, type NodeRecord } from './api';
+import { NodeEditor } from './views/NodeEditor';
+import { StagePlaceholder } from './views/StagePlaceholder';
+
+type StageId = 'setting' | 'planning' | 'writing';
+type SystemId = 'world' | 'geography' | 'characters' | 'factions' | 'chronicle' | 'events';
+
+const STAGES: { id: StageId; label: string; reason: string }[] = [
+  { id: 'setting', label: '① 设定', reason: '' },
+  { id: 'planning', label: '② 规划', reason: '需要编年史与事件（尚未实现）' },
+  { id: 'writing', label: '③ 创作', reason: '需要卷/集/章（尚未实现）' },
+];
+
+const SYSTEMS: { id: SystemId; label: string }[] = [
+  { id: 'world', label: '世界观' },
+  { id: 'geography', label: '地理' },
+  { id: 'characters', label: '人物' },
+  { id: 'factions', label: '势力' },
+  { id: 'chronicle', label: '编年史' },
+  { id: 'events', label: '事件' },
+];
+
+const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
+
+const muted = { color: '#a8a29a' } as const;
+
+export function App({ onClose }: { onClose: () => void }) {
+  const [stage, setStage] = useState<StageId>('setting');
+  const [system, setSystem] = useState<SystemId>('world');
+
+  const [worlds, setWorlds] = useState<string[]>([]);
+  const [world, setWorld] = useState('');
+  const [nodes, setNodes] = useState<NodeRecord[]>([]);
+  const [selected, setSelected] = useState<NodeRecord | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const reloadWorlds = useCallback(async () => {
+    try {
+      const list = await listWorlds();
+      setWorlds(list);
+      setWorld((cur) => (list.includes(cur) ? cur : (list[0] ?? '')));
+      setError(null);
+    } catch (e) {
+      setError(message(e));
+    }
+  }, []);
+
+  useEffect(() => {
+    void reloadWorlds();
+  }, [reloadWorlds]);
+
+  useEffect(() => {
+    setNodes([]);
+    setSelected(null);
+    if (!world) return;
+    let alive = true;
+    setLoading(true);
+    listNodes(world)
+      .then((list) => {
+        if (!alive) return;
+        setNodes(list);
+        setError(null);
+      })
+      .catch((e: unknown) => {
+        if (alive) setError(message(e));
+      })
+      .finally(() => {
+        if (alive) setLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [world]);
+
+  const reloadNodes = useCallback(async () => {
+    if (!world) return;
+    try {
+      setNodes(await listNodes(world));
+    } catch (e) {
+      setError(message(e));
+    }
+  }, [world]);
+
+  const selectNode = async (record: NodeRecord) => {
+    const id = String(record['id'] ?? '');
+    if (!world || !id) return;
+    try {
+      setSelected(await readNode(world, id));
+    } catch (e) {
+      setError(message(e));
+    }
+  };
+
+  const newEntry = () => {
+    const stamp = Date.now().toString(36);
+    setSelected({ id: `entry-${stamp}`, title: `新条目-${stamp}`, body: '', kind: 'entry', extra: {} });
+  };
+
+  const handleSaved = (saved: NodeRecord) => {
+    setSelected(saved);
+    void reloadNodes();
+  };
+
+  const stageMeta = STAGES.find((s) => s.id === stage) ?? STAGES[0]!;
+
+  return (
+    <div style={{
+      position: 'absolute', inset: 0, zIndex: 41, background: '#faf9f7', color: '#2c2926',
+      display: 'flex', flexDirection: 'column', fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif',
+    }}>
+      <header style={{
+        display: 'flex', alignItems: 'center', gap: 16, padding: '8px 16px',
+        background: '#fff', borderBottom: '1px solid #e7e2da',
+      }}>
+        <strong style={{ fontSize: 15 }}>小说工作台</strong>
+        <nav style={{ display: 'flex', gap: 6 }}>
+          {STAGES.map((item) => {
+            const enabled = item.id === 'setting';
+            const active = item.id === stage;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                disabled={!enabled}
+                title={item.reason || undefined}
+                onClick={() => { if (enabled) setStage(item.id); }}
+                style={{
+                  padding: '5px 12px', borderRadius: 6, border: '1px solid transparent',
+                  background: active ? '#b45309' : 'transparent',
+                  color: enabled ? (active ? '#fff' : '#2c2926') : '#a8a29a',
+                  cursor: enabled ? 'pointer' : 'not-allowed', fontSize: 13,
+                }}
+              >{item.label}</button>
+            );
+          })}
+        </nav>
+        <span style={{ flex: 1 }} />
+        <button type="button" onClick={onClose} style={{
+          padding: '5px 12px', borderRadius: 6, border: '1px solid #e7e2da',
+          background: '#fff', cursor: 'pointer', fontSize: 13,
+        }}>关闭</button>
+      </header>
+
+      <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
+        <aside style={{
+          width: 200, flexShrink: 0, padding: '12px 10px', background: '#fff',
+          borderRight: '1px solid #e7e2da', overflow: 'auto',
+        }}>
+          <div style={{ fontSize: 11, letterSpacing: 1, ...muted, padding: '0 8px 8px' }}>设定系统</div>
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+            {SYSTEMS.map((item) => {
+              const enabled = item.id === 'world';
+              const active = item.id === system;
+              return (
+                <li key={item.id}>
+                  <button
+                    type="button"
+                    disabled={!enabled}
+                    title={enabled ? undefined : '尚未实现'}
+                    onClick={() => { if (enabled) setSystem(item.id); }}
+                    style={{
+                      width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: '7px 10px', marginBottom: 2, borderRadius: 6, border: 'none',
+                      background: active ? '#f6efe6' : 'transparent',
+                      color: enabled ? '#2c2926' : '#a8a29a',
+                      cursor: enabled ? 'pointer' : 'not-allowed', fontSize: 13, textAlign: 'left',
+                    }}
+                  >
+                    <span>{item.label}</span>
+                    <span style={{ fontSize: 10 }}>{active ? '●' : '○'}</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+          <div style={{ marginTop: 16, padding: '0 8px', fontSize: 11, ...muted }}>诊断：尚未接入</div>
+        </aside>
+
+        <main style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
+          {stage === 'setting' && system === 'world' ? (
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px',
+                borderBottom: '1px solid #e7e2da', background: '#fff',
+              }}>
+                <span style={{ fontSize: 12, ...muted }}>世界</span>
+                <select
+                  value={world}
+                  disabled={worlds.length === 0}
+                  onChange={(e) => setWorld(e.target.value)}
+                  style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid #e7e2da', background: '#fff' }}
+                >
+                  {worlds.length === 0
+                    ? <option value="">还没有世界</option>
+                    : worlds.map((w) => <option key={w} value={w}>{w}</option>)}
+                </select>
+                <button type="button" onClick={newEntry} disabled={!world} style={{
+                  padding: '5px 12px', borderRadius: 6, border: '1px solid #e7e2da',
+                  background: '#fff', color: world ? '#2c2926' : '#a8a29a',
+                  cursor: world ? 'pointer' : 'not-allowed', fontSize: 13,
+                }}>＋ 新建条目</button>
+                {loading ? <span style={{ fontSize: 12, ...muted }}>加载中…</span> : null}
+              </div>
+
+              {error ? (
+                <div role="alert" style={{
+                  margin: '10px 16px 0', padding: '8px 10px', borderRadius: 6,
+                  background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: 13,
+                }}>{error}</div>
+              ) : null}
+
+              {worlds.length === 0 ? (
+                <div style={{ padding: 24, color: '#a8a29a' }}>
+                  在 data/worlds/ 下还没有世界。先用编辑器创建 world.yaml 与 nodes/ 目录。
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
+                  <div style={{
+                    width: 220, flexShrink: 0, borderRight: '1px solid #e7e2da',
+                    background: '#fff', overflow: 'auto', padding: '8px 6px',
+                  }}>
+                    {nodes.length === 0 && !loading
+                      ? <div style={{ padding: 8, fontSize: 12, ...muted }}>还没有条目</div>
+                      : null}
+                    {nodes.map((node) => {
+                      const id = String(node['id'] ?? '');
+                      const active = selected !== null && String(selected['id'] ?? '') === id;
+                      return (
+                        <button
+                          key={id}
+                          type="button"
+                          onClick={() => void selectNode(node)}
+                          style={{
+                            width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            gap: 6, padding: '7px 10px', marginBottom: 2, borderRadius: 6, border: 'none',
+                            background: active ? '#f6efe6' : 'transparent',
+                            color: '#2c2926', cursor: 'pointer', fontSize: 13, textAlign: 'left',
+                          }}
+                        >
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {String(node['title'] ?? id)}
+                          </span>
+                          {node['kind'] === 'axiom'
+                            ? <span style={{ fontSize: 10, color: '#b45309', flexShrink: 0 }}>公理</span>
+                            : null}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div style={{ flex: 1, minWidth: 0, overflow: 'auto' }}>
+                    {selected ? (
+                      <NodeEditor
+                        key={String(selected['id'] ?? '')}
+                        world={world}
+                        node={selected}
+                        onSaved={handleSaved}
+                      />
+                    ) : (
+                      <div style={{ padding: 24, color: '#a8a29a' }}>选择左侧条目，或新建一条。</div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <StagePlaceholder title={stageMeta.label} reason={stageMeta.reason || '尚未实现'} />
+          )}
+        </main>
+
+        {/* 右栏是外壳的一部分，本任务刻意留空：后续检查器/诊断面板放进这里。 */}
+        <aside aria-label="检查器（本任务留空）" style={{
+          width: 220, flexShrink: 0, borderLeft: '1px solid #e7e2da', background: '#fff',
+        }} />
+      </div>
+    </div>
+  );
+}
