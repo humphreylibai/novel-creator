@@ -41,6 +41,8 @@ function Workbench() {
   );
 }
 
+export const inject = ['slots'];
+
 export function apply(ctx: any) {
   ctx.slots.inject('shell.overlay', () => ctx.slots.register(
     { name: 'shell.overlay', id: 'novel-workbench-launcher', order: 20 },

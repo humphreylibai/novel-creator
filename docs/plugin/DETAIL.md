@@ -13,3 +13,11 @@
 
 - 数据是纯文本，位于插件配置 `dataRoot` 下的 `worlds/<世界>/`。
 - 本版本不含 AI 归纳与审问，也不含正文编辑器。
+
+## 从源码安装
+
+```bash
+npm install && npm run build
+```
+
+构建出 `lib/` 与 `client.js` 后，再安装本目录。

@@ -1,1 +1,1 @@
-export { apply } from './lib/host/plugin.js';
+export { apply, inject } from './lib/host/plugin.js';

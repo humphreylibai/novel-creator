@@ -2,6 +2,6 @@
   "meta": {
     "title": "小说工作台",
     "description": "以断言图管理世界设定：公理、条目、引用与一致性体检。",
-    "detail": "docs/DETAIL.md"
+    "detail": "docs/plugin/DETAIL.md"
   }
 }

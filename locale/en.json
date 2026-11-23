@@ -2,6 +2,6 @@
   "meta": {
     "title": "Novel workbench",
     "description": "Manages world settings as an assertion graph: axioms, entries, citations, and consistency checks.",
-    "detail": "docs/DETAIL.md"
+    "detail": "docs/plugin/DETAIL.md"
   }
 }
