@@ -717,51 +717,102 @@ function wireTimeline(btn, hint){
 /* ---------------- ③ 创作 ---------------- */
 function pageWrite(){
   const p = el('div','pipe');
+
+  const crew = [
+    {id:'at', name:'演员 · 阿缇', brief:'✔ 情境已发', out:'✔ 3 轮', st:'pending'},
+    {id:'jd', name:'演员 · 旧敌', brief:'✔ 情境已发', out:'✔ 3 轮', st:'pass'},
+    {id:'sj', name:'场记',       brief:'✔ 范围：本章', out:'✔ 置景单', st:'reject'},
+    {id:'dg', name:'灯光妆造',   brief:'✔ 范围：3 人', out:'✔ 造型单', st:'pending'},
+    {id:'jj', name:'剪辑',       brief:'—', out:'⏳ 等实录', st:'wait'},
+  ];
+
+  const detail = {
+    at: `<b>规定情境 · 阿缇</b>
+      <div class="sit">
+        你是谁　抄名匠，二十四岁；说话短，常不说完<br>
+        这一场　赢下来，且不让人看见袖口的字<br>
+        你不能　承认翻过他的柜子<br>
+        你怕　　他会发现我在抄他的名字<br>
+        你以为　旧敌比我高两阶；记得三十年前所有人的名字（七成信）<br>
+        你欠着　甲部一条命（未还）<br>
+        此刻　　擂台上，第三轮将开始，左肋还在疼<br>
+        你说话　短句；不叫「大人」；紧张时重复对方的词
+      </div>
+      <div class="note">导演查的是 perspective(event, holder)，所以给的是她以为的版本，不是真相。</div>`,
+    jd: `<b>演员 · 旧敌 · 已通过</b>
+      <div class="note">第三句「你连他叫什么都不知道吧」擦到了「他受甲部指使」的边，但情境里没有这一条，属于偶然命中而非泄漏。保留。</div>`,
+    sj: `<b>场记 · 退回</b>
+      <div class="rej">置景写「关外大雪」，但纪元 615 霜月该地尚未入冬（placeAt：初霜，无积雪）。</div>
+      <div class="note">重做范围：置景 · 局部（只改天气与地面）　[ 通过 ] [ 退回并重做 ] [ 我来改 ]</div>`,
+    dg: `<b>灯光妆造 · 待审</b>
+      <div class="sit">
+        阿缇　左肋挫伤（第 76 章）· 左袖已裂（第 76 章）· 指节有旧茧<br>
+        旧敌　鼻梁新伤 · 甲部制式的护腕（她自己没注意）<br>
+        光源　高台西北侧，午后偏黄，影子短
+      </div>
+      <div class="warn2">⚠ 与台账冲突：袖口「再裂一次」在实录里出现了第二次（D6）</div>`,
+    jj: `<b>剪辑 · 等待实录</b><div class="note">它需要实录、章卡、集内位置与前后章断点。</div>`
+  };
+
   p.innerHTML = `
     <div class="eyebrow">卷二 · 集 15 · 第 78 章</div>
-    <h2 class="t">擂台</h2>
-    <p class="sub">这一屏是唯一真正写字的地方；上面四步都是为它准备材料。</p>
+    <h2 class="t">擂台 <span style="font-size:13px;color:var(--faint);font-family:var(--sans)">工序 4/6</span></h2>
+    <p class="sub">这是导演台：布置 → 产出 → 审查。五部门全过 + 导演签字，这一章才算完成。</p>
+    <style>
+      .crew{width:100%;border-collapse:collapse;font-size:13px;background:var(--panel)}
+      .crew th{text-align:left;color:var(--faint);font-size:11px;font-weight:600;padding:6px 10px;border-bottom:1px solid var(--line)}
+      .crew td{padding:8px 10px;border-bottom:1px solid var(--line-soft)}
+      .crew tr.row{cursor:pointer}
+      .crew tr.row:hover td{background:var(--accent-soft)}
+      .crew tr.on td{background:var(--accent-soft)}
+      .st{font-size:11.5px;padding:1px 8px;border-radius:999px;border:1px solid var(--line)}
+      .st.pass{color:var(--accent);border-color:#cfe0d5;background:var(--accent-soft)}
+      .st.pending{color:var(--warn);border-color:#e3d2b4;background:var(--warn-soft)}
+      .st.reject{color:var(--err);border-color:#e3b9b3;background:var(--err-soft)}
+      .st.wait{color:var(--faint)}
+      .detail{border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:10px;background:var(--panel);padding:12px 14px;margin:12px 0 16px;font-size:13px}
+      .sit{line-height:1.95;color:var(--muted);font-size:12.5px;margin-top:6px}
+      .note{color:var(--faint);font-size:11.5px;margin-top:8px;line-height:1.6}
+      .rej{color:var(--err);font-size:12.5px;margin-top:6px;line-height:1.7}
+      .warn2{color:var(--warn);font-size:12px;margin-top:8px}
+      .take{border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:14px 16px}
+      .take .h{font-size:11.5px;color:var(--faint);margin-bottom:10px;letter-spacing:.05em}
+      .ln{font-family:var(--serif);font-size:14.5px;line-height:2}
+      .who{font-family:var(--sans);font-size:12px;color:var(--accent);font-weight:600;margin-right:10px}
+      .mk{font-family:var(--sans);font-size:11.5px;padding-left:58px;line-height:1.7}
+      .mk.err{color:var(--err)} .mk.opt{color:#7b6aa0} .mk.cut{color:var(--accent)}
+    </style>
+    <table class="crew">
+      <tr><th>部门</th><th>布置</th><th>产出</th><th>审查</th></tr>
+      ${crew.map(c=>`<tr class="row${c.id==='sj'?' on':''}" data-c="${c.id}">
+        <td>${c.name}</td><td style="color:var(--muted)">${c.brief}</td>
+        <td style="color:var(--muted)">${c.out}</td>
+        <td><span class="st ${c.st}">${
+          c.st==='pass'?'✅ 通过':c.st==='pending'?'⏳ 待审':c.st==='reject'?'⚠ 退回':'—'
+        }</span></td></tr>`).join('')}
+    </table>
+    <div class="detail" id="detail">${detail.sj}</div>
 
-    <div class="step"><div class="sh"><span class="num">1</span>章简报（自动汇聚）</div>
-      <div class="sb">
-        <div class="chips">
-          <span class="chip">线 A 主角 × 线 B 旧敌</span>
-          <span class="chip">拉扯结：仇 · 河权→甲部</span>
-          <span class="chip">新问题：旧敌怎么知道她父亲的名字</span>
-          <span class="chip no">禁止：不出现主办方的人</span>
-        </div>
-      </div></div>
+    <div style="font-size:11px;color:var(--faint);letter-spacing:.08em;margin:18px 0 8px">实录 · TAKE 01</div>
+    <div class="take">
+      <div class="h">在场：阿缇 / 旧敌　导演开拍令：第 4 轮翻面，她赢但漏底牌</div>
+      <div class="ln"><span class="who">旧敌</span>你父亲的名字，我记得。</div>
+      <div class="mk opt">◇ 灯光妆造：台下有人剥橘子，酸味压过血腥味</div>
+      <div class="ln"><span class="who">阿缇</span>（没有停手）</div>
+      <div class="ln"><span class="who">旧敌</span>你连他叫什么都不知道吧。</div>
+      <div class="mk err">⚠ 场记：这句成立，但上一场她刚说过「我爹早死了」，语义重复</div>
+      <div class="ln"><span class="who">阿缇</span>……你再说一遍。</div>
+      <div class="mk cut">✂ 剪辑：断在这个问句上，不要给答案（全集第 3 个断点）</div>
+    </div>
 
-    <div class="step"><div class="sh"><span class="num">2</span>场景拆解</div>
-      <div class="sb">
-        <div class="scene">
-          <div><b>目标</b>她要在不露底牌的情况下赢</div>
-          <div><b>障碍</b>旧敌比她高两阶</div>
-          <div><b>转折</b>第二回合她被迫用出“记住名字”</div>
-          <div><b>结果</b>赢了，但漏了一半底牌</div>
-        </div>
-      </div></div>
+    <div style="margin-top:14px;font-size:12.5px;color:var(--muted)">
+      终审：<span style="color:var(--warn)">未签</span> —— 5 个部门里 1 个退回、2 个待审，这一章还不算完成。
+    </div>`;
 
-    <div class="step"><div class="sh"><span class="num">3</span>排演 · 场记（勾选采纳）</div>
-      <div class="sb transcript">
-        <div><span class="pick">☑</span><span class="who">旧敌</span>你父亲的名字，我记得。</div>
-        <div><span class="pick">☑</span><span class="who">阿缇</span>（她没有停手）</div>
-        <div><span class="pick">☐</span><span class="who">旧敌</span>你连他叫什么都不知道吧。</div>
-        <div><span class="pick">☑</span><span class="who">阿缇</span>……你再说一遍。</div>
-        <div style="font-size:11.5px;color:var(--warn);font-family:var(--sans);margin-top:8px">
-          ⚠ 第三句踩了“禁止项”：提到了主办方的名字。冲突。</div>
-      </div></div>
-
-    <div class="step"><div class="sh"><span class="num">4</span>成稿</div>
-      <div class="sb" style="font-family:var(--serif);font-size:15.5px;line-height:2;color:var(--muted)">
-        她左手袖口裂开的时候，台上的人先看见了里面的字。<br>
-        <span style="color:var(--faint);font-size:12.5px">（编辑区 · 你在这里写）</span>
-      </div></div>
-
-    <div class="step"><div class="sh"><span class="num">5</span>写后核验（与第 1 步同一张清单）</div>
-      <div class="sb" style="font-size:12.5px;color:var(--muted)">
-        改变了吗 ✓　新问题留了吗 ✓　结拉扯了吗 ✓　禁止项碰了吗 <span style="color:var(--warn)">✗</span>
-      </div></div>`;
+  p.querySelectorAll('tr.row').forEach(tr => tr.onclick = () => {
+    p.querySelectorAll('tr.row').forEach(x => x.classList.toggle('on', x === tr));
+    p.querySelector('#detail').innerHTML = detail[tr.dataset.c] || '';
+  });
   return p;
 }
 
