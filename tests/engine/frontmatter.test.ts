@@ -43,4 +43,46 @@ describe('front matter 编解码', () => {
   it('缺少围栏时抛错', () => {
     expect(() => parseNode('没有 front matter', 'x.md')).toThrow(/front matter/i);
   });
+
+  it('snake_case 字段映射到 camelCase', () => {
+    const n = parseNode(
+      '---\nid: E-1\ntitle: 无字塔\nconflicts_with: [W-AX-002]\nsame_as: [E-MF-004]\n---\n正文',
+      'nodes/无字塔.md'
+    );
+    expect(n.conflictsWith).toEqual(['W-AX-002']);
+    expect(n.sameAs).toEqual(['E-MF-004']);
+  });
+
+  it('未知键收进 extra 并往返写回', () => {
+    const n = parseNode(
+      '---\nid: E-2\ntitle: 无字塔\ntags: [a, b]\nsource: 手写\n---\n正文',
+      'nodes/无字塔.md'
+    );
+    expect(n.extra).toEqual({ tags: ['a', 'b'], source: '手写' });
+    expect(parseNode(serializeNode(n), n.file).extra).toEqual({ tags: ['a', 'b'], source: '手写' });
+  });
+
+  it('数组字段接受标量写法', () => {
+    const n = parseNode(
+      '---\nid: E-3\ntitle: 无字塔\ncost: 记忆\nderives: W-AX-002\n---\n正文',
+      'nodes/无字塔.md'
+    );
+    expect(n.cost).toEqual(['记忆']);
+    expect(n.derives).toEqual(['W-AX-002']);
+  });
+
+  it('空 front matter 块可解析', () => {
+    const n = parseNode('---\n---\n正文', 'nodes/空.md');
+    expect(n.kind).toBe('entry');
+    expect(n.extra).toEqual({});
+  });
+
+  it('枚举大小写不敏感', () => {
+    const n = parseNode(
+      '---\nkind: AXiom\nstrength: Hard\n---\n正文',
+      'nodes/大小写.md'
+    );
+    expect(n.kind).toBe('axiom');
+    expect(n.strength).toBe('hard');
+  });
 });

@@ -26,6 +26,8 @@ export interface WorldNode {
   conflictsWith: string[];
   sameAs: string[];
   violations: string[];
+  /** front matter 里不在已知字段表中的键，原样保留，序列化时写回 */
+  extra: Record<string, unknown>;
   body: string;
   file: string;
 }
