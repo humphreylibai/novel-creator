@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "小说工作台",
-    "description": "最小探针：在 DSH 网页内注册 /novel/ping 与一个工作台浮层入口。"
+    "description": "随 DSH 启动本地工作台服务（默认 http://127.0.0.1:8787），在浏览器中编辑世界观设定。"
   }
 }

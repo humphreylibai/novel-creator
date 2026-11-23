@@ -25,7 +25,7 @@ const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 const muted = { color: '#a8a29a' } as const;
 
-export function App({ onClose }: { onClose: () => void }) {
+export function App() {
   const [stage, setStage] = useState<StageId>('setting');
   const [system, setSystem] = useState<SystemId>('world');
 
@@ -137,10 +137,6 @@ export function App({ onClose }: { onClose: () => void }) {
           })}
         </nav>
         <span style={{ flex: 1 }} />
-        <button type="button" onClick={onClose} style={{
-          padding: '5px 12px', borderRadius: 6, border: '1px solid #e7e2da',
-          background: '#fff', cursor: 'pointer', fontSize: 13,
-        }}>关闭</button>
       </header>
 
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>

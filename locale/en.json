@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "Novel workbench",
-    "description": "Minimal probe: registers /novel/ping and a workbench overlay launcher inside the DSH web page."
+    "description": "Starts a local workbench server with DSH (default http://127.0.0.1:8787) for editing worldbuilding data in the browser."
   }
 }

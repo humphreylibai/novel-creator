@@ -1,8 +1,8 @@
 export type NodeRecord = Record<string, unknown>;
 
-/** 统一把 `/novel` 前缀、204、错误体翻译成 Promise / Error。 */
+/** 统一把 `/api` 前缀、204、错误体翻译成 Promise / Error。 */
 export async function j<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`/novel${path}`, { headers: { 'content-type': 'application/json' }, ...init });
+  const res = await fetch(`/api${path}`, { headers: { 'content-type': 'application/json' }, ...init });
   if (res.status === 204) return undefined as T;
   const body = await res.json().catch(() => ({ error: res.statusText }));
   if (!res.ok) throw new Error((body as { error?: string }).error ?? res.statusText);

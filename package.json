@@ -3,34 +3,42 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Novel workbench: assertion-graph worldbuilding inside DSH.",
-  "engines": { "node": ">=20" },
+  "description": "Novel workbench: assertion-graph worldbuilding served locally by a DSH plugin.",
+  "engines": {
+    "node": ">=20"
+  },
   "exports": {
     ".": "./index.js",
-    "./client": "./client.js",
     "./locale/*.json": "./locale/*.json",
     "./icon": "./icon.svg"
   },
-  "files": ["index.js", "client.js", "lib", "cordis.patch.yml", "locale/*.json", "icon.svg"],
+  "files": [
+    "index.js",
+    "lib",
+    "public",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg"
+  ],
   "dsh": {
-    "bundle": { "patch": "./cordis.patch.yml" },
-    "client": {
-      "platform": "web",
-      "immediately": false,
-      "inject": ["@deepseek-ai/dsh-client-ui-layout"]
+    "bundle": {
+      "patch": "./cordis.patch.yml"
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json && node scripts/build-client.mjs",
+    "build": "tsc -p tsconfig.build.json && node scripts/build-ui.mjs",
     "test": "vitest run",
     "verify": "npm run build && npm test"
   },
   "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "yaml": "^2.5.1"
   },
   "devDependencies": {
     "@types/node": "^22.7.4",
     "@types/react": "^18.3.11",
+    "@types/react-dom": "^18.3.7",
     "esbuild": "^0.24.0",
     "tsx": "^4.19.1",
     "typescript": "^5.6.2",
