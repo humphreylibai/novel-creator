@@ -55,4 +55,39 @@ describe('handlers', () => {
   it('未知路径返回 404', async () => {
     expect((await h({ method: 'GET', path: '/nope', query: {}, body: null })).status).toBe(404);
   });
+
+  it('GET 不存在的节点返回 404 而不是 500', async () => {
+    const r = await h({ method: 'GET', path: '/worlds/记忆之世/nodes/不存在', query: {}, body: null });
+    expect(r.status).toBe(404);
+    expect(r.json).toEqual({ error: '找不到节点 不存在' });
+  });
+
+  it('URL 的 node id 是权威：body id 不一致返回 400', async () => {
+    const r = await h({ method: 'PUT', path: '/worlds/记忆之世/nodes/E-1', query: {},
+      body: { id: 'E-2', kind: 'entry', title: '冒名' } });
+    expect(r.status).toBe(400);
+    expect(r.json).toEqual({ error: 'id 与路径不一致' });
+    const list = await h({ method: 'GET', path: '/worlds/记忆之世/nodes', query: {}, body: null });
+    expect((list.json as Array<{ id: string }>).map((n) => n.id)).not.toContain('E-2');
+  });
+
+  it('POST /worlds 缺 id 或 config 返回 400 且不建世界', async () => {
+    const fresh = createHandlers(await mkdtemp(join(tmpdir(), 'novel-h-empty-')));
+    const r = await fresh({ method: 'POST', path: '/worlds', query: {}, body: {} });
+    expect(r.status).toBe(400);
+    expect(r.json).toEqual({ error: '需要 id 与 config' });
+    const list = await fresh({ method: 'GET', path: '/worlds', query: {}, body: null });
+    expect(list.json).toEqual([]);
+  });
+
+  it('axiom 可以降回 entry', async () => {
+    const created = await h({ method: 'PUT', path: '/worlds/记忆之世/nodes/W-AX-3', query: {},
+      body: { id: 'W-AX-3', kind: 'axiom', title: '可降级', strength: 'hard', cost: ['记忆'] } });
+    expect(created.status).toBe(200);
+    const demoted = await h({ method: 'PUT', path: '/worlds/记忆之世/nodes/W-AX-3', query: {},
+      body: { kind: 'entry' } });
+    expect(demoted.status).toBe(200);
+    const got = await h({ method: 'GET', path: '/worlds/记忆之世/nodes/W-AX-3', query: {}, body: null });
+    expect((got.json as { kind: string }).kind).toBe('entry');
+  });
 });
