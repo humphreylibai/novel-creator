@@ -17,7 +17,9 @@ export interface HostCtx {
 /** 启动失败不能抛穿：否则整个 DSH 插件层都会报错。 */
 export async function apply(ctx: HostCtx, config: PluginConfig): Promise<void> {
   const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
-  const dataRoot = resolveDataRoot(config?.dataRoot, packageRoot);
+  // 与 CLI 同一套解析：显式配置优先，其次 NOVEL_DATA_ROOT，最后包根 /data。
+  const dataRoot = resolveDataRoot(
+    config?.dataRoot?.trim() || process.env['NOVEL_DATA_ROOT'], packageRoot);
   const publicDir = resolve(packageRoot, 'public');
   const port = config?.port ?? 8787;
 
