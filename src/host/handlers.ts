@@ -1,5 +1,6 @@
 import * as store from './store.js';
 import { isSafeName } from './safeName.js';
+import { invalidateIndex } from './indexFile.js';
 import { buildGraph, type Graph } from '../engine/graph.js';
 import { runRules } from '../engine/rules/index.js';
 import { stateAt } from '../engine/query.js';
@@ -168,6 +169,7 @@ export function createHandlers(root: string): (req: NovelReq) => Promise<NovelRe
             } };
           }
           await store.deleteNode(root, worldId, nodeId);
+          await invalidateIndex(root, worldId).catch(() => {});
           return { status: 204 };
         }
         if (req.method === 'PUT') {
@@ -185,7 +187,10 @@ export function createHandlers(root: string): (req: NovelReq) => Promise<NovelRe
           // 校验必须先于写盘：422 的节点不能留下任何文件。
           if (node.kind === 'axiom' && node.cost.length === 0)
             return { status: 422, json: { error: '公理必须付出代价（铁律一）' } };
-          return { status: 200, json: await store.writeNode(root, worldId, node) };
+          const saved = await store.writeNode(root, worldId, node);
+          // 索引是派生品：失效失败不该让已经落盘的写操作返回 500。
+          await invalidateIndex(root, worldId).catch(() => {});
+          return { status: 200, json: saved };
         }
       }
 
@@ -221,6 +226,7 @@ export function createHandlers(root: string): (req: NovelReq) => Promise<NovelRe
           id, chapter: numOrNull(b['chapter']), scene: numOrNull(b['scene']),
           text: String(b['text'] ?? '')
         });
+        await invalidateIndex(root, worldId).catch(() => {});
         return { status: 200, json: { ok: true } };
       }
 

@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { buildGraph } from '../engine/graph.js';
 import { runRules } from '../engine/rules/index.js';
 import { resolveDataRoot } from './dataRoot.js';
+import { rebuildIndex } from './indexFile.js';
 import * as store from './store.js';
 
 const ICON = { error: '🔴', warn: '🟡', info: '⚪' } as const;
@@ -30,6 +31,11 @@ async function main(): Promise<void> {
     console.log(`${ICON[f.severity]} ${f.rule}  ${f.message}`);
     if (f.hint) console.log(`     ${f.hint}`);
   }
+
+  // 体检顺手重建派生索引：删掉 index.json 再跑一次就能恢复。
+  await rebuildIndex(root, worldId);
+  console.log('\nindex.json 已重建');
+
   // 用 exitCode 而不是 process.exit：管道输出不会被截断。
   process.exitCode = findings.some((f) => f.severity === 'error') ? 1 : 0;
 }
