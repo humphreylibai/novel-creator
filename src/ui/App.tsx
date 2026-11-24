@@ -7,6 +7,7 @@ import { Findings } from './views/Findings.js';
 import { CardWall } from './views/CardWall.js';
 import { Fragments } from './views/Fragments.js';
 import { Beliefs } from './views/Beliefs.js';
+import { Graph } from './views/Graph.js';
 import { NewWorld } from './views/NewWorld.js';
 import { NodeEditor } from './views/NodeEditor.js';
 import { canCreateEntry, onboardingActive } from './onboarding.js';
@@ -16,7 +17,7 @@ import { Timeline } from './views/Timeline.js';
 
 type StageId = 'setting' | 'planning' | 'writing';
 type SystemId = 'world' | 'geography' | 'characters' | 'factions' | 'chronicle' | 'events';
-type WorldView = 'nodes' | 'cards' | 'findings' | 'timeline' | 'fragments' | 'beliefs';
+type WorldView = 'nodes' | 'cards' | 'findings' | 'timeline' | 'fragments' | 'beliefs' | 'graph';
 
 const WORLD_VIEWS: { id: WorldView; label: string }[] = [
   { id: 'nodes', label: '条目' },
@@ -25,6 +26,7 @@ const WORLD_VIEWS: { id: WorldView; label: string }[] = [
   { id: 'timeline', label: '时间轴' },
   { id: 'fragments', label: '片段' },
   { id: 'beliefs', label: '认知' },
+  { id: 'graph', label: '图谱' },
 ];
 
 const STAGES: { id: StageId; label: string; reason: string }[] = [
@@ -429,6 +431,10 @@ export function App() {
               ) : view === 'beliefs' ? (
                 world
                   ? <Beliefs worldId={world} onChanged={() => {}} />
+                  : <div style={{ padding: 24, color: '#a8a29a' }}>加载中…</div>
+              ) : view === 'graph' ? (
+                world
+                  ? <Graph worldId={world} onOpen={(id) => void openNodeById(id)} />
                   : <div style={{ padding: 24, color: '#a8a29a' }}>加载中…</div>
               ) : view === 'findings' ? (
                 world
