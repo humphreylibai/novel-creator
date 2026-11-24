@@ -179,9 +179,26 @@ export function App() {
     }
   };
 
-  const newEntry = () => {
+  const newNode = (kind: 'entry' | 'axiom') => {
     const stamp = Date.now().toString(36);
-    setSelected({ id: `entry-${stamp}`, title: `新条目-${stamp}`, body: '', kind: 'entry', extra: {} });
+    setSelected({
+      id: kind === 'axiom' ? `W-AX-${stamp}` : `entry-${stamp}`,
+      title: kind === 'axiom' ? `新公理-${stamp}` : `新条目-${stamp}`,
+      body: '',
+      kind,
+      strength: kind === 'axiom' ? 'hard' : 'soft',
+      span: { from: null, to: null },
+      aliases: [],
+      cost: [],
+      derives: [],
+      manifests: [],
+      requires: [],
+      conflictsWith: [],
+      sameAs: [],
+      proposition: null,
+      extra: {},
+    });
+    setView('nodes');
   };
 
   const handleSaved = (saved: NodeRecord) => {
@@ -190,6 +207,14 @@ export function App() {
     setSelected(saved);
     setError(null);
     void reloadNodes();
+    void reloadStats();
+  };
+
+  const handleDeleted = () => {
+    setSelected(null);
+    setError(null);
+    void reloadNodes();
+    void reloadStats();
   };
 
   const stageMeta = STAGES.find((s) => s.id === stage) ?? STAGES[0]!;
@@ -313,11 +338,18 @@ export function App() {
                   })}
                 </div>
                 {view === 'nodes' ? (
-                  <button type="button" onClick={newEntry} disabled={!world} style={{
-                    padding: '5px 12px', borderRadius: 6, border: '1px solid #e7e2da',
-                    background: '#fff', color: world ? '#2c2926' : '#a8a29a',
-                    cursor: world ? 'pointer' : 'not-allowed', fontSize: 13,
-                  }}>＋ 新建条目</button>
+                  <>
+                    <button type="button" onClick={() => newNode('entry')} disabled={!world} style={{
+                      padding: '5px 12px', borderRadius: 6, border: '1px solid #e7e2da',
+                      background: '#fff', color: world ? '#2c2926' : '#a8a29a',
+                      cursor: world ? 'pointer' : 'not-allowed', fontSize: 13,
+                    }}>＋ 新建条目</button>
+                    <button type="button" onClick={() => newNode('axiom')} disabled={!world} style={{
+                      padding: '5px 12px', borderRadius: 6, border: '1px solid #e7e2da',
+                      background: '#fff', color: world ? '#2c2926' : '#a8a29a',
+                      cursor: world ? 'pointer' : 'not-allowed', fontSize: 13,
+                    }}>＋ 新建公理</button>
+                  </>
                 ) : null}
                 {loading ? <span style={{ fontSize: 12, ...muted }}>加载中…</span> : null}
               </div>
@@ -384,7 +416,9 @@ export function App() {
                         key={String(selected['id'] ?? '')}
                         world={world}
                         node={selected}
+                        nodes={nodes}
                         onSaved={handleSaved}
+                        onDeleted={handleDeleted}
                       />
                     ) : (
                       <div style={{ padding: 24, color: '#a8a29a' }}>选择左侧条目，或新建一条。</div>

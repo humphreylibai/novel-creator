@@ -7302,6 +7302,16 @@
     method: "PUT",
     body: JSON.stringify(n)
   });
+  async function deleteNode(w, id) {
+    const res = await fetch(`/api/worlds/${encodeURIComponent(w)}/nodes/${encodeURIComponent(id)}`, {
+      method: "DELETE"
+    });
+    if (res.status === 204) return;
+    const body = await res.json().catch(() => ({ error: res.statusText }));
+    const b = body;
+    const refs = b.refs ? `\uFF08\u7247\u6BB5\uFF1A${b.refs.fragments.join("\u3001") || "\u65E0"}\uFF1B\u6761\u76EE\uFF1A${b.refs.nodes.map((n) => `${n.title}(${n.via})`).join("\u3001") || "\u65E0"}\uFF09` : "";
+    throw new Error(`${b.error ?? res.statusText}${refs}`);
+  }
   var citations = (w, id) => j(`/worlds/${encodeURIComponent(w)}/nodes/${encodeURIComponent(id)}/citations`);
   var missingLinks = (w) => j(`/worlds/${encodeURIComponent(w)}/graph/missing`);
   var findings = (w) => j(`/worlds/${encodeURIComponent(w)}/findings`);
@@ -7389,17 +7399,109 @@
 
   // src/ui/views/NodeEditor.tsx
   var import_react2 = __toESM(require_react(), 1);
+
+  // src/ui/nodeFields.ts
+  var splitList = (raw) => raw.split(/[、,，\n]/).map((s) => s.trim()).filter(Boolean);
+  var joinList = (value) => Array.isArray(value) ? value.map(String).join("\u3001") : "";
+  var numberOrNull = (raw) => {
+    if (raw.trim() === "") return null;
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : null;
+  };
+  function nodePayload(base, draft) {
+    const cost = splitList(draft.cost);
+    return {
+      ...base,
+      kind: draft.kind,
+      title: draft.title.trim(),
+      body: draft.body,
+      strength: draft.strength,
+      span: { from: numberOrNull(draft.from), to: numberOrNull(draft.to) },
+      aliases: splitList(draft.aliases),
+      cost: draft.kind === "axiom" ? cost : [],
+      proposition: draft.proposition.trim() || null,
+      // API 读的是 snake_case；base 里可能是 camelCase，统一在这里落成已知键。
+      conflicts_with: Array.isArray(base["conflictsWith"]) ? base["conflictsWith"] : Array.isArray(base["conflicts_with"]) ? base["conflicts_with"] : [],
+      same_as: Array.isArray(base["sameAs"]) ? base["sameAs"] : Array.isArray(base["same_as"]) ? base["same_as"] : []
+    };
+  }
+  function relationOptions(nodes, field, selfId) {
+    return nodes.filter((n) => n["id"] !== selfId).filter((n) => field === "derives" ? n["kind"] === "axiom" : field === "manifests" ? n["kind"] === "entry" : true).map((n) => ({
+      id: String(n["id"] ?? ""),
+      title: String(n["title"] ?? n["id"] ?? "")
+    })).sort((a, b) => a.title.localeCompare(b.title, "zh"));
+  }
+
+  // src/ui/views/NodeEditor.tsx
   var import_jsx_runtime2 = __toESM(require_jsx_runtime(), 1);
-  function NodeEditor({ world, node, onSaved }) {
+  var fieldStyle = {
+    padding: "8px 10px",
+    fontSize: 14,
+    border: "1px solid #e7e2da",
+    borderRadius: 6
+  };
+  var labelStyle = { fontSize: 12, color: "#6b645c", marginBottom: 4 };
+  var asList = (v) => Array.isArray(v) ? v.map(String) : typeof v === "string" && v ? [v] : [];
+  function RelationSelect({ label, field, nodes, selfId, value, onChange }) {
+    const options = relationOptions(nodes, field, selfId);
+    return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { display: "flex", flexDirection: "column", gap: 4 }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: labelStyle, children: label }),
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+        "select",
+        {
+          multiple: true,
+          size: Math.max(3, Math.min(6, options.length)),
+          value,
+          disabled: options.length === 0,
+          onChange: (e) => onChange([...e.target.selectedOptions].map((o) => o.value)),
+          style: { ...fieldStyle, padding: 4 },
+          children: options.map((o) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("option", { value: o.id, children: [
+            o.title,
+            "\uFF08",
+            o.id,
+            "\uFF09"
+          ] }, o.id))
+        }
+      ),
+      options.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: 11, color: "#a8a29a" }, children: "\u6682\u65E0\u53EF\u9009\u8282\u70B9" }) : null
+    ] });
+  }
+  function NodeEditor({ world, node, nodes, onSaved, onDeleted }) {
     const id = String(node["id"] ?? "");
+    const [kind, setKind] = (0, import_react2.useState)(
+      node["kind"] === "axiom" ? "axiom" : "entry"
+    );
     const [title, setTitle] = (0, import_react2.useState)(String(node["title"] ?? ""));
     const [body, setBody] = (0, import_react2.useState)(String(node["body"] ?? ""));
+    const [strength, setStrength] = (0, import_react2.useState)(String(node["strength"] ?? "soft"));
+    const [from, setFrom] = (0, import_react2.useState)(String(node["span"]?.from ?? ""));
+    const [to, setTo] = (0, import_react2.useState)(String(node["span"]?.to ?? ""));
+    const [aliases, setAliases] = (0, import_react2.useState)(joinList(node["aliases"]));
+    const [cost, setCost] = (0, import_react2.useState)(joinList(node["cost"]));
+    const [proposition, setProposition] = (0, import_react2.useState)(String(node["proposition"] ?? ""));
+    const [derives, setDerives] = (0, import_react2.useState)(asList(node["derives"]));
+    const [manifests, setManifests] = (0, import_react2.useState)(asList(node["manifests"]));
+    const [requires, setRequires] = (0, import_react2.useState)(asList(node["requires"]));
+    const [conflictsWith, setConflictsWith] = (0, import_react2.useState)(asList(node["conflictsWith"]));
+    const [sameAs, setSameAs] = (0, import_react2.useState)(asList(node["sameAs"]));
     const [error, setError] = (0, import_react2.useState)(null);
     const [saving, setSaving] = (0, import_react2.useState)(false);
     const [refs, setRefs] = (0, import_react2.useState)(null);
     (0, import_react2.useEffect)(() => {
+      setKind(node["kind"] === "axiom" ? "axiom" : "entry");
       setTitle(String(node["title"] ?? ""));
       setBody(String(node["body"] ?? ""));
+      setStrength(String(node["strength"] ?? "soft"));
+      setFrom(String(node["span"]?.from ?? ""));
+      setTo(String(node["span"]?.to ?? ""));
+      setAliases(joinList(node["aliases"]));
+      setCost(joinList(node["cost"]));
+      setProposition(String(node["proposition"] ?? ""));
+      setDerives(asList(node["derives"]));
+      setManifests(asList(node["manifests"]));
+      setRequires(asList(node["requires"]));
+      setConflictsWith(asList(node["conflictsWith"]));
+      setSameAs(asList(node["sameAs"]));
       setError(null);
     }, [node]);
     (0, import_react2.useEffect)(() => {
@@ -7416,10 +7518,36 @@
       };
     }, [world, id]);
     const save = async () => {
+      const draft = {
+        kind,
+        title,
+        body,
+        strength,
+        from,
+        to,
+        aliases,
+        cost,
+        proposition
+      };
+      if (!title.trim()) {
+        setError("\u6807\u9898\u4E0D\u80FD\u4E3A\u7A7A");
+        return;
+      }
+      if (kind === "axiom" && splitList(cost).length === 0) {
+        setError("\u516C\u7406\u5FC5\u987B\u4ED8\u51FA\u4EE3\u4EF7\uFF08\u94C1\u5F8B\u4E00\uFF09");
+        return;
+      }
       setSaving(true);
       setError(null);
       try {
-        const saved = await saveNode(world, { ...node, title, body });
+        const saved = await saveNode(world, {
+          ...nodePayload(node, draft),
+          derives,
+          manifests,
+          requires,
+          conflicts_with: conflictsWith,
+          same_as: sameAs
+        });
         onSaved(saved);
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
@@ -7427,7 +7555,21 @@
         setSaving(false);
       }
     };
-    const isAxiom = node["kind"] === "axiom";
+    const remove = async () => {
+      if (!window.confirm(`\u5220\u9664\u300C${title}\u300D\uFF1F\u88AB\u5F15\u7528\u65F6\u4F1A\u88AB\u62E6\u4E0B\u3002`)) return;
+      setSaving(true);
+      setError(null);
+      try {
+        await deleteNode(world, id);
+        onDeleted();
+      } catch (e) {
+        setError(e instanceof Error ? e.message : String(e));
+      } finally {
+        setSaving(false);
+      }
+    };
+    const isAxiom = kind === "axiom";
+    const persisted = Boolean(node["file"]);
     return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { padding: 20, display: "flex", flexDirection: "column", gap: 10, minHeight: "100%", boxSizing: "border-box" }, children: [
       /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [
         /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h3", { style: { margin: 0, fontSize: 16 }, children: [
@@ -7436,6 +7578,14 @@
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: 12, color: "#a8a29a" }, children: id }),
         /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { flex: 1 } }),
+        persisted ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { type: "button", onClick: () => void remove(), disabled: saving, style: {
+          padding: "6px 12px",
+          borderRadius: 6,
+          border: "1px solid #fecaca",
+          background: "#fff",
+          color: "#b91c1c",
+          cursor: saving ? "wait" : "pointer"
+        }, children: "\u5220\u9664" }) : null,
         /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { type: "button", onClick: () => void save(), disabled: saving, style: {
           padding: "6px 16px",
           borderRadius: 6,
@@ -7445,13 +7595,92 @@
           cursor: saving ? "wait" : "pointer"
         }, children: saving ? "\u4FDD\u5B58\u4E2D\u2026" : "\u4FDD\u5B58" })
       ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: 10 }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { display: "flex", flexDirection: "column", gap: 4, width: 150 }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: labelStyle, children: "\u7C7B\u578B" }),
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+            "select",
+            {
+              value: kind,
+              onChange: (e) => setKind(e.target.value === "axiom" ? "axiom" : "entry"),
+              style: fieldStyle,
+              children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "entry", children: "\u6761\u76EE" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "axiom", children: "\u516C\u7406" })
+              ]
+            }
+          )
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { display: "flex", flexDirection: "column", gap: 4, width: 150 }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: labelStyle, children: "\u5F3A\u5EA6" }),
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("select", { value: strength, onChange: (e) => setStrength(e.target.value), style: fieldStyle, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "hard", children: "hard \xB7 \u4E0D\u53EF\u8FDD\u53CD" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "firm", children: "firm \xB7 \u53EF\u7834\u8981\u7559\u75D5" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "soft", children: "soft \xB7 \u5730\u65B9\u98CE\u5473" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "myth", children: "myth \xB7 \u53EF\u80FD\u662F\u5047\u7684" })
+          ] })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { display: "flex", flexDirection: "column", gap: 4, width: 130 }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: labelStyle, children: "\u751F\u6548\u81EA" }),
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+            "input",
+            {
+              type: "number",
+              value: from,
+              onChange: (e) => setFrom(e.target.value),
+              placeholder: "\u7559\u7A7A = \u59CB\u7EC8",
+              style: fieldStyle
+            }
+          )
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { display: "flex", flexDirection: "column", gap: 4, width: 130 }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: labelStyle, children: "\u751F\u6548\u81F3" }),
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+            "input",
+            {
+              type: "number",
+              value: to,
+              onChange: (e) => setTo(e.target.value),
+              placeholder: "\u7559\u7A7A = \u81F3\u4ECA",
+              style: fieldStyle
+            }
+          )
+        ] })
+      ] }),
       /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
         "input",
         {
           value: title,
           onChange: (e) => setTitle(e.target.value),
           placeholder: "\u6807\u9898",
-          style: { padding: "8px 10px", fontSize: 15, border: "1px solid #e7e2da", borderRadius: 6 }
+          style: { ...fieldStyle, fontSize: 15 }
+        }
+      ),
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+        "input",
+        {
+          value: aliases,
+          onChange: (e) => setAliases(e.target.value),
+          placeholder: "\u522B\u540D / \u8BB3\u79F0\uFF0C\u7528\u987F\u53F7\u6216\u9017\u53F7\u5206\u9694",
+          style: fieldStyle
+        }
+      ),
+      isAxiom ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+        "input",
+        {
+          value: cost,
+          onChange: (e) => setCost(e.target.value),
+          placeholder: "\u4EE3\u4EF7\uFF0C\u5FC5\u586B\uFF1B\u7528\u987F\u53F7\u6216\u9017\u53F7\u5206\u9694\uFF0C\u4F8B\u5982\uFF1A\u8BB0\u5FC6\u3001\u8EAB\u4EFD",
+          style: fieldStyle
+        }
+      ) : null,
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+        "textarea",
+        {
+          value: proposition,
+          onChange: (e) => setProposition(e.target.value),
+          placeholder: "\u547D\u9898\uFF1A\u4E00\u53E5\u53EF\u5224\u771F\u5047\u7684\u8BDD\uFF08\u516C\u7406\u5FC5\u586B\uFF1B\u6761\u76EE\u53EF\u7559\u7A7A\uFF09",
+          style: { ...fieldStyle, minHeight: 44, resize: "vertical", fontFamily: "inherit" }
         }
       ),
       /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
@@ -7462,7 +7691,7 @@
           placeholder: "\u6B63\u6587",
           style: {
             flex: 1,
-            minHeight: 260,
+            minHeight: 220,
             padding: "10px 12px",
             fontSize: 14,
             lineHeight: 1.7,
@@ -7473,6 +7702,62 @@
           }
         }
       ),
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }, children: [
+        !isAxiom ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+          RelationSelect,
+          {
+            label: "\u6D3E\u751F\u81EA\uFF08\u516C\u7406\uFF09",
+            field: "derives",
+            nodes,
+            selfId: id,
+            value: derives,
+            onChange: setDerives
+          }
+        ) : /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+          RelationSelect,
+          {
+            label: "\u8868\u73B0\u4E3A\uFF08\u6761\u76EE\uFF09",
+            field: "manifests",
+            nodes,
+            selfId: id,
+            value: manifests,
+            onChange: setManifests
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+          RelationSelect,
+          {
+            label: "\u4F9D\u8D56\uFF08requires\uFF09",
+            field: "requires",
+            nodes,
+            selfId: id,
+            value: requires,
+            onChange: setRequires
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+          RelationSelect,
+          {
+            label: "\u4E92\u65A5\uFF08conflicts_with\uFF09",
+            field: "conflictsWith",
+            nodes,
+            selfId: id,
+            value: conflictsWith,
+            onChange: setConflictsWith
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+          RelationSelect,
+          {
+            label: "\u540C\u4E00\u5B9E\u4F53\uFF08same_as\uFF09",
+            field: "sameAs",
+            nodes,
+            selfId: id,
+            value: sameAs,
+            onChange: setSameAs
+          }
+        )
+      ] }),
       error ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { role: "alert", style: {
         padding: "8px 10px",
         borderRadius: 6,
@@ -7481,7 +7766,7 @@
         color: "#b91c1c",
         whiteSpace: "pre-wrap"
       }, children: error }) : null,
-      refs ? /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: 24, fontSize: 13, color: "#a8a29a", lineHeight: 1.7 }, children: [
+      refs ? /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: 8, fontSize: 13, color: "#a8a29a", lineHeight: 1.7 }, children: [
         /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
           "\u88AB\u7247\u6BB5\u5F15\u7528\uFF1A",
           refs.fragments.length ? refs.fragments.join("\u3001") : "\u65E0"
@@ -7897,15 +8182,39 @@
         if (worldRef.current === w) setError(message3(e));
       }
     };
-    const newEntry = () => {
+    const newNode = (kind) => {
       const stamp = Date.now().toString(36);
-      setSelected({ id: `entry-${stamp}`, title: `\u65B0\u6761\u76EE-${stamp}`, body: "", kind: "entry", extra: {} });
+      setSelected({
+        id: kind === "axiom" ? `W-AX-${stamp}` : `entry-${stamp}`,
+        title: kind === "axiom" ? `\u65B0\u516C\u7406-${stamp}` : `\u65B0\u6761\u76EE-${stamp}`,
+        body: "",
+        kind,
+        strength: kind === "axiom" ? "hard" : "soft",
+        span: { from: null, to: null },
+        aliases: [],
+        cost: [],
+        derives: [],
+        manifests: [],
+        requires: [],
+        conflictsWith: [],
+        sameAs: [],
+        proposition: null,
+        extra: {}
+      });
+      setView("nodes");
     };
     const handleSaved = (saved) => {
       if (!world || worldRef.current !== world) return;
       setSelected(saved);
       setError(null);
       void reloadNodes();
+      void reloadStats();
+    };
+    const handleDeleted = () => {
+      setSelected(null);
+      setError(null);
+      void reloadNodes();
+      void reloadStats();
     };
     const stageMeta = STAGES.find((s) => s.id === stage) ?? STAGES[0];
     return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { style: {
@@ -8061,15 +8370,26 @@
                 item.id
               );
             }) }),
-            view === "nodes" ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("button", { type: "button", onClick: newEntry, disabled: !world, style: {
-              padding: "5px 12px",
-              borderRadius: 6,
-              border: "1px solid #e7e2da",
-              background: "#fff",
-              color: world ? "#2c2926" : "#a8a29a",
-              cursor: world ? "pointer" : "not-allowed",
-              fontSize: 13
-            }, children: "\uFF0B \u65B0\u5EFA\u6761\u76EE" }) : null,
+            view === "nodes" ? /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(import_jsx_runtime6.Fragment, { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("button", { type: "button", onClick: () => newNode("entry"), disabled: !world, style: {
+                padding: "5px 12px",
+                borderRadius: 6,
+                border: "1px solid #e7e2da",
+                background: "#fff",
+                color: world ? "#2c2926" : "#a8a29a",
+                cursor: world ? "pointer" : "not-allowed",
+                fontSize: 13
+              }, children: "\uFF0B \u65B0\u5EFA\u6761\u76EE" }),
+              /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("button", { type: "button", onClick: () => newNode("axiom"), disabled: !world, style: {
+                padding: "5px 12px",
+                borderRadius: 6,
+                border: "1px solid #e7e2da",
+                background: "#fff",
+                color: world ? "#2c2926" : "#a8a29a",
+                cursor: world ? "pointer" : "not-allowed",
+                fontSize: 13
+              }, children: "\uFF0B \u65B0\u5EFA\u516C\u7406" })
+            ] }) : null,
             loading ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { style: { fontSize: 12, ...muted }, children: "\u52A0\u8F7D\u4E2D\u2026" }) : null
           ] }),
           error ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { role: "alert", style: {
@@ -8129,7 +8449,9 @@
               {
                 world,
                 node: selected,
-                onSaved: handleSaved
+                nodes,
+                onSaved: handleSaved,
+                onDeleted: handleDeleted
               },
               String(selected["id"] ?? "")
             ) : /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { style: { padding: 24, color: "#a8a29a" }, children: "\u9009\u62E9\u5DE6\u4FA7\u6761\u76EE\uFF0C\u6216\u65B0\u5EFA\u4E00\u6761\u3002" }) })

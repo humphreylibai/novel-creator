@@ -45,6 +45,22 @@ export const saveNode = (w: string, n: NodeRecord) =>
     body: JSON.stringify(n),
   });
 
+export async function deleteNode(w: string, id: string): Promise<void> {
+  const res = await fetch(`/api/worlds/${encodeURIComponent(w)}/nodes/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  });
+  if (res.status === 204) return;
+  const body = await res.json().catch(() => ({ error: res.statusText }));
+  const b = body as {
+    error?: string;
+    refs?: { fragments: string[]; nodes: { title: string; via: string }[] };
+  };
+  const refs = b.refs
+    ? `（片段：${b.refs.fragments.join('、') || '无'}；条目：${b.refs.nodes.map((n) => `${n.title}(${n.via})`).join('、') || '无'}）`
+    : '';
+  throw new Error(`${b.error ?? res.statusText}${refs}`);
+}
+
 export const citations = (w: string, id: string) =>
   j<Citations>(`/worlds/${encodeURIComponent(w)}/nodes/${encodeURIComponent(id)}/citations`);
 
