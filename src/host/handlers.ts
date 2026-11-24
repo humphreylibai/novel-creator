@@ -4,7 +4,7 @@ import { invalidateIndex } from './indexFile.js';
 import { buildGraph, type Graph } from '../engine/graph.js';
 import { runRules } from '../engine/rules/index.js';
 import { stateAt } from '../engine/query.js';
-import type { Span, Strength, WorldNode } from '../engine/types.js';
+import type { Belief, Span, Strength, WorldNode } from '../engine/types.js';
 
 export interface NovelReq { method: string; path: string; query: Record<string, string>; body: unknown }
 export interface NovelRes { status: number; json?: unknown }
@@ -34,6 +34,23 @@ function pickSpan(v: unknown, fallback: Span): Span {
  * 请求体 → 领域节点。字段名转换（conflicts_with / same_as）只在这里发生一次；
  * extra 是未知 front matter 键的保存通道，缺了它保存往返就会静默丢数据。
  */
+function toBelief(input: JsonRecord, id: string): Belief {
+  const holder = String(input['holder'] ?? '').trim();
+  const target = String(input['target'] ?? '').trim();
+  const content = String(input['content'] ?? '').trim();
+  const confidence = Number(input['confidence']);
+  if (!holder || !target || !content)
+    throw new Error('holder / target / content 都不能为空');
+  if (!Number.isFinite(confidence) || confidence < 0 || confidence > 1)
+    throw new Error('confidence 必须是 0–1 之间的数字');
+  return {
+    id, holder, target, content, confidence,
+    source: strArray(input['source']) ?? [],
+    span: pickSpan(input['span'], { from: null, to: null }),
+    file: `beliefs/${id}.yaml`,
+  };
+}
+
 function toNode(input: JsonRecord, prev: WorldNode | null): WorldNode {
   const rawId = input['id'];
   const rawTitle = input['title'];
@@ -212,6 +229,35 @@ export function createHandlers(root: string): (req: NovelReq) => Promise<NovelRe
         const nodes = await store.listNodes(root, worldId);
         const g = buildGraph(nodes, await store.listFragments(root, worldId));
         return { status: 200, json: runRules({ nodes, graph: g }) };
+      }
+
+      if (parts[2] === 'beliefs' && parts.length === 3 && req.method === 'GET')
+        return { status: 200, json: await store.listBeliefs(root, worldId) };
+
+      if (parts[2] === 'beliefs' && parts.length === 4) {
+        const beliefId = decodeURIComponent(parts[3]!);
+        if (!isSafeName(beliefId))
+          return { status: 400, json: { error: '认知 id 不能包含路径分隔符' } };
+        if (req.method === 'PUT') {
+          let belief: Belief;
+          try {
+            belief = toBelief(asRecord(req.body), beliefId);
+          } catch (e) {
+            return { status: 422, json: { error: e instanceof Error ? e.message : String(e) } };
+          }
+          await store.writeBelief(root, worldId, belief);
+          return { status: 200, json: belief };
+        }
+        if (req.method === 'DELETE') {
+          try {
+            await store.deleteBelief(root, worldId, beliefId);
+          } catch (e) {
+            if (e instanceof Error && e.message.startsWith('找不到认知'))
+              return { status: 404, json: { error: e.message } };
+            throw e;
+          }
+          return { status: 204 };
+        }
       }
 
       if (parts[2] === 'fragments' && parts.length === 3 && req.method === 'GET')

@@ -67,6 +67,31 @@ export async function deleteNode(w: string, id: string): Promise<void> {
 export const citations = (w: string, id: string) =>
   j<Citations>(`/worlds/${encodeURIComponent(w)}/nodes/${encodeURIComponent(id)}/citations`);
 
+export interface BeliefRecord {
+  id: string;
+  holder: string;
+  target: string;
+  content: string;
+  confidence: number;
+  source: string[];
+  span: { from: number | null; to: number | null };
+  file: string;
+}
+
+export const listBeliefs = (w: string) =>
+  j<BeliefRecord[]>(`/worlds/${encodeURIComponent(w)}/beliefs`);
+
+export const saveBelief = (w: string, id: string, body: Omit<BeliefRecord, 'id' | 'file'>) =>
+  j<BeliefRecord>(`/worlds/${encodeURIComponent(w)}/beliefs/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  });
+
+export const deleteBelief = (w: string, id: string) =>
+  j<void>(`/worlds/${encodeURIComponent(w)}/beliefs/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  });
+
 export interface FragmentRecord {
   id: string;
   chapter: number | null;

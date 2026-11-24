@@ -1,9 +1,10 @@
 import { mkdir, readdir, readFile, writeFile, unlink } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { parseNode, serializeNode } from '../engine/frontmatter.js';
 import { parseWorldConfig, type WorldConfig } from '../engine/worldConfig.js';
-import type { WorldNode } from '../engine/types.js';
+import { parseBelief, serializeBelief } from '../engine/beliefs.js';
+import type { Belief, WorldNode } from '../engine/types.js';
 import { isSafeName } from './safeName.js';
 
 export type WorldNodeLike = WorldNode;
@@ -18,6 +19,7 @@ export interface Fragment {
 export const worldDir = (root: string, id: string) => join(root, 'worlds', id);
 export const nodesDir = (root: string, id: string) => join(worldDir(root, id), 'nodes');
 export const fragDir = (root: string, id: string) => join(worldDir(root, id), 'fragments');
+export const beliefsDir = (root: string, id: string) => join(worldDir(root, id), 'beliefs');
 
 async function ensureDir(p: string): Promise<void> {
   await mkdir(p, { recursive: true });
@@ -108,4 +110,42 @@ export async function readFragment(root: string, worldId: string, id: string): P
   const found = (await listFragments(root, worldId)).find((f) => f.id === id);
   if (!found) throw new Error(`找不到片段 ${id}`);
   return found;
+}
+
+
+export async function listBeliefs(root: string, worldId: string): Promise<Belief[]> {
+  const dir = beliefsDir(root, worldId);
+  let names: string[];
+  try {
+    names = await readdir(dir);
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException).code === 'ENOENT') return [];
+    throw e;
+  }
+  const out = await Promise.all(names
+    .filter((name) => name.endsWith('.yaml'))
+    .map(async (name) => parseBelief(
+      await readFile(join(dir, name), 'utf8'),
+      basename(name, '.yaml'),
+      `beliefs/${name}`,
+    )));
+  return out.sort((a, b) => a.id.localeCompare(b.id, 'zh'));
+}
+
+export async function writeBelief(root: string, worldId: string, b: Belief): Promise<void> {
+  if (!isSafeName(b.id)) throw new Error('非法认知 id');
+  const dir = beliefsDir(root, worldId);
+  await ensureDir(dir);
+  await writeFile(join(dir, `${b.id}.yaml`), serializeBelief(b), 'utf8');
+}
+
+export async function deleteBelief(root: string, worldId: string, id: string): Promise<void> {
+  if (!isSafeName(id)) throw new Error('非法认知 id');
+  try {
+    await unlink(join(beliefsDir(root, worldId), `${id}.yaml`));
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException).code === 'ENOENT')
+      throw new Error(`找不到认知 ${id}`);
+    throw e;
+  }
 }

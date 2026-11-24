@@ -31,3 +31,15 @@ export interface WorldNode {
   body: string;
   file: string;
 }
+
+/** 认知记录：某个 holder 相信 target 的某个说法。 */
+export interface Belief {
+  id: string;
+  holder: string;
+  target: string;
+  content: string;
+  confidence: number;
+  source: string[];
+  span: Span;
+  file: string;
+}
