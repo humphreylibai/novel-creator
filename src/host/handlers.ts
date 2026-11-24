@@ -78,6 +78,8 @@ export function createHandlers(root: string): (req: NovelReq) => Promise<NovelRe
           if (typeof id !== 'string' || id.trim() === ''
             || typeof config !== 'string' || config.trim() === '')
             return { status: 400, json: { error: '需要 id 与 config' } };
+          if (!isSafeName(id))
+            return { status: 400, json: { error: '世界 id 不能包含路径分隔符' } };
           await store.createWorld(root, id, config);
           return { status: 201, json: { ok: true } };
         }

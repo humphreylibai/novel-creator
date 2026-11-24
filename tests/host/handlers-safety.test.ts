@@ -16,9 +16,11 @@ theme:
 `;
 
 let root: string;
+let parent: string;
 let h: ReturnType<typeof createHandlers>;
 beforeAll(async () => {
-  root = await mkdtemp(join(tmpdir(), 'novel-safe-'));
+  parent = await mkdtemp(join(tmpdir(), 'novel-safe-'));
+  root = join(parent, 'data');
   h = createHandlers(root);
   await h({ method: 'POST', path: '/worlds', query: {}, body: { id: 'w', config: CONFIG } });
 });
@@ -28,13 +30,20 @@ describe('文件名安全', () => {
     const r = await h({ method: 'PUT', path: '/worlds/w/nodes/E-1', query: {},
       body: { id: 'E-1', kind: 'entry', title: '../../../../escaped', body: 'x' } });
     expect(r.status).toBe(400);
-    await expect(stat(join(root, '..', 'escaped.md'))).rejects.toThrow();
+    await expect(stat(join(parent, 'escaped.md'))).rejects.toThrow();
   });
 
   it('拒绝带路径分隔符的片段 id', async () => {
     const r = await h({ method: 'PUT', path: '/worlds/w/fragments/..%2F..%2Fevil', query: {},
       body: { chapter: 1, scene: 1, text: 'x' } });
     expect(r.status).toBe(400);
+  });
+
+  it('拒绝带路径分隔符的世界 id，且不写出数据根', async () => {
+    const r = await h({ method: 'POST', path: '/worlds', query: {},
+      body: { id: '../../evil', config: CONFIG } });
+    expect(r.status).toBe(400);
+    await expect(stat(join(parent, 'evil', 'world.yaml'))).rejects.toThrow();
   });
 
   it('普通标题仍可保存', async () => {

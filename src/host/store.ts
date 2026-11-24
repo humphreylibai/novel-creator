@@ -24,6 +24,7 @@ async function ensureDir(p: string): Promise<void> {
 }
 
 export async function createWorld(root: string, id: string, configYaml: string): Promise<void> {
+  if (!isSafeName(id)) throw new Error('非法世界 id');
   await ensureDir(nodesDir(root, id));
   await ensureDir(fragDir(root, id));
   await ensureDir(join(worldDir(root, id), 'beliefs'));
