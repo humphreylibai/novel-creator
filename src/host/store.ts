@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { parseNode, serializeNode } from '../engine/frontmatter.js';
 import { parseWorldConfig, type WorldConfig } from '../engine/worldConfig.js';
 import type { WorldNode } from '../engine/types.js';
+import { isSafeName } from './safeName.js';
 
 export type WorldNodeLike = WorldNode;
 export interface Fragment {
@@ -58,7 +59,9 @@ export async function readNode(root: string, worldId: string, nodeId: string): P
 export async function writeNode(root: string, worldId: string, node: WorldNode): Promise<WorldNode> {
   const dir = nodesDir(root, worldId);
   await ensureDir(dir);
-  const rel = `nodes/${node.title || node.id}.md`;
+  const name = node.title || node.id;
+  if (!isSafeName(name)) throw new Error('非法文件名');
+  const rel = `nodes/${name}.md`;
   const prev = (await listNodes(root, worldId)).find((n) => n.id === node.id);
   await writeFile(join(worldDir(root, worldId), rel), serializeNode({ ...node, file: rel }), 'utf8');
   // 改了标题就是换了文件：旧文件必须清掉，否则列表里会出现同 id 的两份
@@ -94,6 +97,7 @@ export async function writeFragment(root: string, worldId: string,
   f: { id: string; chapter: number | null; scene: number | null; text: string }): Promise<void> {
   const dir = fragDir(root, worldId);
   await ensureDir(dir);
+  if (!isSafeName(f.id)) throw new Error('非法文件名');
   const head = ['---', f.chapter !== null ? `chapter: ${f.chapter}` : null,
     f.scene !== null ? `scene: ${f.scene}` : null, '---', ''].filter((x) => x !== null).join('\n');
   await writeFile(join(dir, `${f.id}.md`), `${head}${f.text}`, 'utf8');

@@ -1,4 +1,5 @@
 import * as store from './store.js';
+import { isSafeName } from './safeName.js';
 import { buildGraph } from '../engine/graph.js';
 import type { Span, Strength, WorldNode } from '../engine/types.js';
 
@@ -84,6 +85,7 @@ export function createHandlers(root: string): (req: NovelReq) => Promise<NovelRe
 
       const worldId = parts[1] ? decodeURIComponent(parts[1]) : '';
       if (!worldId) return { status: 404, json: { error: '缺少世界 id' } };
+      if (!isSafeName(worldId)) return { status: 404, json: { error: '世界 id 非法' } };
 
       if (parts[2] === 'config' && req.method === 'GET')
         return { status: 200, json: await store.readWorldConfig(root, worldId) };
@@ -126,6 +128,9 @@ export function createHandlers(root: string): (req: NovelReq) => Promise<NovelRe
           if (bodyId !== undefined && bodyId !== null && String(bodyId) !== nodeId)
             return { status: 400, json: { error: 'id 与路径不一致' } };
           node.id = nodeId;
+          const fileName = node.title || node.id;
+          if (!isSafeName(fileName))
+            return { status: 400, json: { error: '标题不能为空或包含路径分隔符' } };
           // 校验必须先于写盘：422 的节点不能留下任何文件。
           if (node.kind === 'axiom' && node.cost.length === 0)
             return { status: 422, json: { error: '公理必须付出代价（铁律一）' } };
@@ -138,6 +143,8 @@ export function createHandlers(root: string): (req: NovelReq) => Promise<NovelRe
 
       if (parts[2] === 'fragments' && parts.length === 4 && req.method === 'PUT') {
         const id = decodeURIComponent(parts[3]!);
+        if (!isSafeName(id))
+          return { status: 400, json: { error: '片段 id 不能包含路径分隔符' } };
         const b = asRecord(req.body);
         await store.writeFragment(root, worldId, {
           id, chapter: numOrNull(b['chapter']), scene: numOrNull(b['scene']),
