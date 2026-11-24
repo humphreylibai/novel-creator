@@ -1,7 +1,7 @@
-import type { Finding, WorldNode } from '../types.js';
+import type { Belief, Finding, WorldNode } from '../types.js';
 import type { Graph } from '../graph.js';
 
-export interface RuleContext { nodes: WorldNode[]; graph: Graph }
+export interface RuleContext { nodes: WorldNode[]; graph: Graph; beliefs?: Belief[] }
 export type Rule = (ctx: RuleContext) => Finding[];
 
 const refs = (g: Graph, id: string) => g.inbound.get(id) ?? [];

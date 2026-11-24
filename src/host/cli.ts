@@ -28,7 +28,8 @@ async function main(): Promise<void> {
 
   const nodes = await store.listNodes(root, worldId);
   const fragments = await store.listFragments(root, worldId);
-  const findings = runRules({ nodes, graph: buildGraph(nodes, fragments) });
+  const beliefs = await store.listBeliefs(root, worldId);
+  const findings = runRules({ nodes, graph: buildGraph(nodes, fragments), beliefs });
 
   console.log(`\n${worldId} · 体检`);
   console.log(`  节点 ${nodes.length} · 片段 ${fragments.length} · 问题 ${findings.length}\n`);

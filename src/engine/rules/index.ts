@@ -3,8 +3,12 @@ import type { Rule, RuleContext } from './content.js';
 import { contentRules } from './content.js';
 import { structuralRules } from './structural.js';
 import { explicitRules } from './explicit.js';
+import { r9Beliefs } from './belief.js';
 
-const all: Rule[] = [...contentRules, ...structuralRules, ...explicitRules];
+const all: Rule[] = [
+  ...contentRules, ...structuralRules, ...explicitRules,
+  ({ nodes, beliefs }) => r9Beliefs(nodes, beliefs ?? []),
+];
 
 export function runRules(ctx: RuleContext): Finding[] {
   return all.flatMap((r) => r(ctx))

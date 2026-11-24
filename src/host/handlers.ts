@@ -228,7 +228,9 @@ export function createHandlers(root: string): (req: NovelReq) => Promise<NovelRe
       if (parts[2] === 'findings' && req.method === 'GET') {
         const nodes = await store.listNodes(root, worldId);
         const g = buildGraph(nodes, await store.listFragments(root, worldId));
-        return { status: 200, json: runRules({ nodes, graph: g }) };
+        return { status: 200, json: runRules({
+          nodes, graph: g, beliefs: await store.listBeliefs(root, worldId),
+        }) };
       }
 
       if (parts[2] === 'beliefs' && parts.length === 3 && req.method === 'GET')
