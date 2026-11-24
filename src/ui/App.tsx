@@ -6,6 +6,7 @@ import {
 import { Findings } from './views/Findings.js';
 import { CardWall } from './views/CardWall.js';
 import { Fragments } from './views/Fragments.js';
+import { NewWorld } from './views/NewWorld.js';
 import { NodeEditor } from './views/NodeEditor.js';
 import { Onboarding } from './views/Onboarding.js';
 import { StagePlaceholder } from './views/StagePlaceholder.js';
@@ -54,6 +55,7 @@ export function App() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [missing, setMissing] = useState<string[]>([]);
+  const [creatingWorld, setCreatingWorld] = useState(false);
   /** null 表示「尚未加载」，不能据此显示开局引导。 */
   const [stat, setStat] = useState<Stats | null>(null);
 
@@ -181,6 +183,15 @@ export function App() {
     } catch (e) {
       if (worldRef.current === w) setError(message(e));
     }
+  };
+
+  const handleWorldCreated = async (id: string) => {
+    setCreatingWorld(false);
+    await reloadWorlds();
+    setWorld(id);
+    setStat(null);
+    setSelected(null);
+    setView('nodes');
   };
 
   const newNode = (kind: 'entry' | 'axiom') => {
@@ -317,6 +328,10 @@ export function App() {
                     ? <option value="">还没有世界</option>
                     : worlds.map((w) => <option key={w} value={w}>{w}</option>)}
                 </select>
+                <button type="button" onClick={() => setCreatingWorld(true)} style={{
+                  padding: '5px 10px', borderRadius: 6, border: '1px solid #e7e2da',
+                  background: '#fff', color: '#2c2926', cursor: 'pointer', fontSize: 12,
+                }}>＋ 新建世界</button>
                 <div role="tablist" aria-label="世界观视图" style={{
                   display: 'flex', gap: 2, padding: 2, borderRadius: 6,
                   border: '1px solid #e7e2da', background: '#faf9f7',
@@ -358,6 +373,13 @@ export function App() {
                 {loading ? <span style={{ fontSize: 12, ...muted }}>加载中…</span> : null}
               </div>
 
+              {creatingWorld ? (
+                <NewWorld
+                  onCreated={(id) => void handleWorldCreated(id)}
+                  onCancel={() => setCreatingWorld(false)}
+                />
+              ) : null}
+
               {error ? (
                 <div role="alert" style={{
                   margin: '10px 16px 0', padding: '8px 10px', borderRadius: 6,
@@ -367,7 +389,7 @@ export function App() {
 
               {worlds.length === 0 ? (
                 <div style={{ padding: 24, color: '#a8a29a' }}>
-                  在 data/worlds/ 下还没有世界。先用编辑器创建 world.yaml 与 nodes/ 目录。
+                  还没有世界。点上方「＋ 新建世界」创建。
                 </div>
               ) : view === 'cards' ? (
                 world

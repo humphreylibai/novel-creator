@@ -26,6 +26,9 @@ export async function j<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const listWorlds = () => j<string[]>('/worlds');
 
+export const createWorld = (id: string, config: string) =>
+  j<{ ok: true }>('/worlds', { method: 'POST', body: JSON.stringify({ id, config }) });
+
 export const listNodes = (w: string) => j<NodeRecord[]>(`/worlds/${encodeURIComponent(w)}/nodes`);
 
 export interface Stats {
