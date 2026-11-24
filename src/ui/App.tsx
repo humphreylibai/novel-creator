@@ -1,10 +1,17 @@
 import { useCallback, useEffect, useState } from 'react';
 import { listNodes, listWorlds, missingLinks, readNode, type NodeRecord } from './api.js';
+import { Findings } from './views/Findings.js';
 import { NodeEditor } from './views/NodeEditor.js';
 import { StagePlaceholder } from './views/StagePlaceholder.js';
 
 type StageId = 'setting' | 'planning' | 'writing';
 type SystemId = 'world' | 'geography' | 'characters' | 'factions' | 'chronicle' | 'events';
+type WorldView = 'nodes' | 'findings';
+
+const WORLD_VIEWS: { id: WorldView; label: string }[] = [
+  { id: 'nodes', label: '条目' },
+  { id: 'findings', label: '诊断' },
+];
 
 const STAGES: { id: StageId; label: string; reason: string }[] = [
   { id: 'setting', label: '① 设定', reason: '' },
@@ -28,6 +35,7 @@ const muted = { color: '#a8a29a' } as const;
 export function App() {
   const [stage, setStage] = useState<StageId>('setting');
   const [system, setSystem] = useState<SystemId>('world');
+  const [view, setView] = useState<WorldView>('nodes');
 
   const [worlds, setWorlds] = useState<string[]>([]);
   const [world, setWorld] = useState('');
@@ -99,6 +107,17 @@ export function App() {
   const selectNode = async (record: NodeRecord) => {
     const id = String(record['id'] ?? '');
     if (!world || !id) return;
+    try {
+      setSelected(await readNode(world, id));
+    } catch (e) {
+      setError(message(e));
+    }
+  };
+
+  /** 诊断条目跳转：先切回条目视图，再加载节点；失败落到现有 error 状态。 */
+  const openFindingNode = async (id: string) => {
+    setView('nodes');
+    if (!world) return;
     try {
       setSelected(await readNode(world, id));
     } catch (e) {
@@ -185,7 +204,7 @@ export function App() {
             })}
           </ul>
           <div style={{ marginTop: 16, padding: '0 8px', fontSize: 11, ...muted }}>
-            <div>诊断：尚未接入</div>
+            <div>诊断：见世界观面板「诊断」标签</div>
             {missing.length > 0 ? (
               <div style={{ marginTop: 6, fontSize: 12, color: '#a60' }}>
                 未定义专名：{missing.join('、')}
@@ -212,11 +231,37 @@ export function App() {
                     ? <option value="">还没有世界</option>
                     : worlds.map((w) => <option key={w} value={w}>{w}</option>)}
                 </select>
-                <button type="button" onClick={newEntry} disabled={!world} style={{
-                  padding: '5px 12px', borderRadius: 6, border: '1px solid #e7e2da',
-                  background: '#fff', color: world ? '#2c2926' : '#a8a29a',
-                  cursor: world ? 'pointer' : 'not-allowed', fontSize: 13,
-                }}>＋ 新建条目</button>
+                <div role="tablist" aria-label="世界观视图" style={{
+                  display: 'flex', gap: 2, padding: 2, borderRadius: 6,
+                  border: '1px solid #e7e2da', background: '#faf9f7',
+                }}>
+                  {WORLD_VIEWS.map((item) => {
+                    const active = view === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        role="tab"
+                        aria-selected={active}
+                        onClick={() => setView(item.id)}
+                        style={{
+                          padding: '4px 10px', borderRadius: 4, border: 'none',
+                          background: active ? '#fff' : 'transparent',
+                          color: active ? '#b45309' : '#2c2926',
+                          boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                          cursor: 'pointer', fontSize: 13,
+                        }}
+                      >{item.label}</button>
+                    );
+                  })}
+                </div>
+                {view === 'nodes' ? (
+                  <button type="button" onClick={newEntry} disabled={!world} style={{
+                    padding: '5px 12px', borderRadius: 6, border: '1px solid #e7e2da',
+                    background: '#fff', color: world ? '#2c2926' : '#a8a29a',
+                    cursor: world ? 'pointer' : 'not-allowed', fontSize: 13,
+                  }}>＋ 新建条目</button>
+                ) : null}
                 {loading ? <span style={{ fontSize: 12, ...muted }}>加载中…</span> : null}
               </div>
 
@@ -231,6 +276,10 @@ export function App() {
                 <div style={{ padding: 24, color: '#a8a29a' }}>
                   在 data/worlds/ 下还没有世界。先用编辑器创建 world.yaml 与 nodes/ 目录。
                 </div>
+              ) : view === 'findings' ? (
+                world
+                  ? <Findings worldId={world} onOpen={(id) => void openFindingNode(id)} />
+                  : <div style={{ padding: 24, color: '#a8a29a' }}>加载中…</div>
               ) : (
                 <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
                   <div style={{

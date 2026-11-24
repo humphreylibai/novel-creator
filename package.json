@@ -28,6 +28,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json && node scripts/build-ui.mjs",
     "test": "vitest run",
+    "check": "tsx src/host/cli.ts",
     "verify": "npm run build && npm test"
   },
   "dependencies": {

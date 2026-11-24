@@ -1,6 +1,7 @@
 import * as store from './store.js';
 import { isSafeName } from './safeName.js';
 import { buildGraph, type Graph } from '../engine/graph.js';
+import { runRules } from '../engine/rules/index.js';
 import type { Span, Strength, WorldNode } from '../engine/types.js';
 
 export interface NovelReq { method: string; path: string; query: Record<string, string>; body: unknown }
@@ -185,6 +186,12 @@ export function createHandlers(root: string): (req: NovelReq) => Promise<NovelRe
             return { status: 422, json: { error: '公理必须付出代价（铁律一）' } };
           return { status: 200, json: await store.writeNode(root, worldId, node) };
         }
+      }
+
+      if (parts[2] === 'findings' && req.method === 'GET') {
+        const nodes = await store.listNodes(root, worldId);
+        const g = buildGraph(nodes, await store.listFragments(root, worldId));
+        return { status: 200, json: runRules({ nodes, graph: g }) };
       }
 
       if (parts[2] === 'fragments' && parts.length === 3 && req.method === 'GET')

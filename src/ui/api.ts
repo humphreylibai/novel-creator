@@ -1,3 +1,7 @@
+import type { Finding } from '../engine/types.js';
+
+export type { Finding, Severity } from '../engine/types.js';
+
 export type NodeRecord = Record<string, unknown>;
 
 export interface CitationNodeRef {
@@ -38,3 +42,6 @@ export const citations = (w: string, id: string) =>
 
 export const missingLinks = (w: string) =>
   j<{ missing: string[] }>(`/worlds/${encodeURIComponent(w)}/graph/missing`);
+
+export const findings = (w: string) =>
+  j<Finding[]>(`/worlds/${encodeURIComponent(w)}/findings`);
