@@ -1,4 +1,4 @@
-import type { Finding } from '../engine/types.js';
+import type { Finding, Span, Strength } from '../engine/types.js';
 
 export type { Finding, Severity } from '../engine/types.js';
 
@@ -45,3 +45,19 @@ export const missingLinks = (w: string) =>
 
 export const findings = (w: string) =>
   j<Finding[]>(`/worlds/${encodeURIComponent(w)}/findings`);
+
+export interface TimelineNode {
+  id: string;
+  title: string;
+  strength: Strength;
+  span: Span;
+}
+
+export interface TimelineSlice {
+  year: number;
+  nodes: TimelineNode[];
+}
+
+/** 某一年「在场」的条目切片；year 由服务端回显，界面以它为准。 */
+export const atYear = (w: string, year: number) =>
+  j<TimelineSlice>(`/worlds/${encodeURIComponent(w)}/at?year=${encodeURIComponent(String(year))}`);

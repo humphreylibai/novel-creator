@@ -3,14 +3,16 @@ import { listNodes, listWorlds, missingLinks, readNode, type NodeRecord } from '
 import { Findings } from './views/Findings.js';
 import { NodeEditor } from './views/NodeEditor.js';
 import { StagePlaceholder } from './views/StagePlaceholder.js';
+import { Timeline } from './views/Timeline.js';
 
 type StageId = 'setting' | 'planning' | 'writing';
 type SystemId = 'world' | 'geography' | 'characters' | 'factions' | 'chronicle' | 'events';
-type WorldView = 'nodes' | 'findings';
+type WorldView = 'nodes' | 'findings' | 'timeline';
 
 const WORLD_VIEWS: { id: WorldView; label: string }[] = [
   { id: 'nodes', label: '条目' },
   { id: 'findings', label: '诊断' },
+  { id: 'timeline', label: '时间轴' },
 ];
 
 const STAGES: { id: StageId; label: string; reason: string }[] = [
@@ -114,8 +116,8 @@ export function App() {
     }
   };
 
-  /** 诊断条目跳转：先切回条目视图，再加载节点；失败落到现有 error 状态。 */
-  const openFindingNode = async (id: string) => {
+  /** 诊断 / 时间轴里的跳转：先切回条目视图，再加载节点；失败落到现有 error 状态。 */
+  const openNodeById = async (id: string) => {
     setView('nodes');
     if (!world) return;
     try {
@@ -278,7 +280,11 @@ export function App() {
                 </div>
               ) : view === 'findings' ? (
                 world
-                  ? <Findings worldId={world} onOpen={(id) => void openFindingNode(id)} />
+                  ? <Findings worldId={world} onOpen={(id) => void openNodeById(id)} />
+                  : <div style={{ padding: 24, color: '#a8a29a' }}>加载中…</div>
+              ) : view === 'timeline' ? (
+                world
+                  ? <Timeline worldId={world} onOpen={(id) => void openNodeById(id)} />
                   : <div style={{ padding: 24, color: '#a8a29a' }}>加载中…</div>
               ) : (
                 <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>

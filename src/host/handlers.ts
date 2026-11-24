@@ -2,6 +2,7 @@ import * as store from './store.js';
 import { isSafeName } from './safeName.js';
 import { buildGraph, type Graph } from '../engine/graph.js';
 import { runRules } from '../engine/rules/index.js';
+import { stateAt } from '../engine/query.js';
 import type { Span, Strength, WorldNode } from '../engine/types.js';
 
 export interface NovelReq { method: string; path: string; query: Record<string, string>; body: unknown }
@@ -186,6 +187,20 @@ export function createHandlers(root: string): (req: NovelReq) => Promise<NovelRe
             return { status: 422, json: { error: '公理必须付出代价（铁律一）' } };
           return { status: 200, json: await store.writeNode(root, worldId, node) };
         }
+      }
+
+      // 时间切片：?year= 缺省按 0 年；非有限数直接 400，避免把 NaN 透进引擎。
+      if (parts[2] === 'at' && req.method === 'GET') {
+        const year = Number(req.query['year'] ?? 0);
+        if (!Number.isFinite(year))
+          return { status: 400, json: { error: `year 必须是数字：${req.query['year'] ?? ''}` } };
+        const nodes = await store.listNodes(root, worldId);
+        return { status: 200, json: {
+          year,
+          nodes: stateAt(nodes, year).map((n) => ({
+            id: n.id, title: n.title, strength: n.strength, span: n.span
+          }))
+        } };
       }
 
       if (parts[2] === 'findings' && req.method === 'GET') {

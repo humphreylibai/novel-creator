@@ -7284,7 +7284,7 @@
   var import_client = __toESM(require_client(), 1);
 
   // src/ui/App.tsx
-  var import_react3 = __toESM(require_react(), 1);
+  var import_react4 = __toESM(require_react(), 1);
 
   // src/ui/api.ts
   async function j(path, init) {
@@ -7304,6 +7304,7 @@
   var citations = (w, id) => j(`/worlds/${encodeURIComponent(w)}/nodes/${encodeURIComponent(id)}/citations`);
   var missingLinks = (w) => j(`/worlds/${encodeURIComponent(w)}/graph/missing`);
   var findings = (w) => j(`/worlds/${encodeURIComponent(w)}/findings`);
+  var atYear = (w, year) => j(`/worlds/${encodeURIComponent(w)}/at?year=${encodeURIComponent(String(year))}`);
 
   // src/ui/views/Findings.tsx
   var import_react = __toESM(require_react(), 1);
@@ -7500,11 +7501,119 @@
     ] });
   }
 
-  // src/ui/App.tsx
+  // src/ui/views/Timeline.tsx
+  var import_react3 = __toESM(require_react(), 1);
   var import_jsx_runtime4 = __toESM(require_jsx_runtime(), 1);
+  var message2 = (e) => e instanceof Error ? e.message : String(e);
+  function Timeline({ worldId, onOpen }) {
+    const [year, setYear] = (0, import_react3.useState)(612);
+    const [rows, setRows] = (0, import_react3.useState)([]);
+    const [error, setError] = (0, import_react3.useState)(null);
+    const [loading, setLoading] = (0, import_react3.useState)(false);
+    (0, import_react3.useEffect)(() => {
+      let alive = true;
+      setError(null);
+      setLoading(true);
+      atYear(worldId, year).then((r) => {
+        if (alive) setRows(r.nodes);
+      }).catch((e) => {
+        if (!alive) return;
+        setRows([]);
+        setError(message2(e));
+      }).finally(() => {
+        if (alive) setLoading(false);
+      });
+      return () => {
+        alive = false;
+      };
+    }, [worldId, year]);
+    return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { padding: 24, maxWidth: 900 }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("h2", { style: { marginTop: 0, fontSize: 17 }, children: [
+        "\u65F6\u95F4\u8F74 \xB7 \u7EAA\u5143 ",
+        year,
+        " \u5E74",
+        loading ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { style: { marginLeft: 8, fontSize: 12, color: "#a8a29a" }, children: "\u52A0\u8F7D\u4E2D\u2026" }) : null
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { marginBottom: 16, display: "flex", alignItems: "center" }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+          "input",
+          {
+            type: "range",
+            min: 0,
+            max: 800,
+            value: year,
+            "aria-label": "\u5E74\u4EFD",
+            onChange: (e) => setYear(Number(e.target.value)),
+            style: { width: 480 }
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { style: { marginLeft: 12, fontSize: 13 }, children: [
+          "\u7EAA\u5143 ",
+          year,
+          " \u5E74"
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { style: { marginLeft: 12, fontSize: 12, color: "#a8a29a" }, children: [
+          "\u5728\u573A ",
+          rows.length,
+          " \u6761"
+        ] })
+      ] }),
+      error ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { role: "alert", style: {
+        padding: "8px 10px",
+        borderRadius: 6,
+        background: "#fef2f2",
+        border: "1px solid #fecaca",
+        color: "#b91c1c",
+        fontSize: 13
+      }, children: error }) : null,
+      !error && !loading && rows.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { style: { color: "#a8a29a" }, children: "\u8FD9\u4E00\u5E74\u6CA1\u6709\u5728\u573A\u7684\u6761\u76EE\u3002" }) : null,
+      rows.map((n) => /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
+        "div",
+        {
+          style: {
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            padding: "6px 0",
+            borderBottom: "1px solid #f0f0f0"
+          },
+          children: [
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { style: { width: 320, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: n.title }),
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { style: { color: "#a8a29a", fontSize: 12, width: 120 }, children: [
+              n.span.from ?? "\u2014",
+              " \u2192 ",
+              n.span.to ?? "\u81F3\u4ECA"
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+              "button",
+              {
+                type: "button",
+                onClick: () => onOpen(n.id),
+                style: {
+                  padding: "2px 8px",
+                  fontSize: 12,
+                  borderRadius: 4,
+                  border: "1px solid #e7e2da",
+                  background: "#fff",
+                  color: "#2c2926",
+                  cursor: "pointer"
+                },
+                children: "\u6253\u5F00"
+              }
+            )
+          ]
+        },
+        n.id
+      ))
+    ] });
+  }
+
+  // src/ui/App.tsx
+  var import_jsx_runtime5 = __toESM(require_jsx_runtime(), 1);
   var WORLD_VIEWS = [
     { id: "nodes", label: "\u6761\u76EE" },
-    { id: "findings", label: "\u8BCA\u65AD" }
+    { id: "findings", label: "\u8BCA\u65AD" },
+    { id: "timeline", label: "\u65F6\u95F4\u8F74" }
   ];
   var STAGES = [
     { id: "setting", label: "\u2460 \u8BBE\u5B9A", reason: "" },
@@ -7519,33 +7628,33 @@
     { id: "chronicle", label: "\u7F16\u5E74\u53F2" },
     { id: "events", label: "\u4E8B\u4EF6" }
   ];
-  var message2 = (e) => e instanceof Error ? e.message : String(e);
+  var message3 = (e) => e instanceof Error ? e.message : String(e);
   var muted = { color: "#a8a29a" };
   function App() {
-    const [stage, setStage] = (0, import_react3.useState)("setting");
-    const [system, setSystem] = (0, import_react3.useState)("world");
-    const [view, setView] = (0, import_react3.useState)("nodes");
-    const [worlds, setWorlds] = (0, import_react3.useState)([]);
-    const [world, setWorld] = (0, import_react3.useState)("");
-    const [nodes, setNodes] = (0, import_react3.useState)([]);
-    const [selected, setSelected] = (0, import_react3.useState)(null);
-    const [error, setError] = (0, import_react3.useState)(null);
-    const [loading, setLoading] = (0, import_react3.useState)(false);
-    const [missing, setMissing] = (0, import_react3.useState)([]);
-    const reloadWorlds = (0, import_react3.useCallback)(async () => {
+    const [stage, setStage] = (0, import_react4.useState)("setting");
+    const [system, setSystem] = (0, import_react4.useState)("world");
+    const [view, setView] = (0, import_react4.useState)("nodes");
+    const [worlds, setWorlds] = (0, import_react4.useState)([]);
+    const [world, setWorld] = (0, import_react4.useState)("");
+    const [nodes, setNodes] = (0, import_react4.useState)([]);
+    const [selected, setSelected] = (0, import_react4.useState)(null);
+    const [error, setError] = (0, import_react4.useState)(null);
+    const [loading, setLoading] = (0, import_react4.useState)(false);
+    const [missing, setMissing] = (0, import_react4.useState)([]);
+    const reloadWorlds = (0, import_react4.useCallback)(async () => {
       try {
         const list = await listWorlds();
         setWorlds(list);
         setWorld((cur) => list.includes(cur) ? cur : list[0] ?? "");
         setError(null);
       } catch (e) {
-        setError(message2(e));
+        setError(message3(e));
       }
     }, []);
-    (0, import_react3.useEffect)(() => {
+    (0, import_react4.useEffect)(() => {
       void reloadWorlds();
     }, [reloadWorlds]);
-    (0, import_react3.useEffect)(() => {
+    (0, import_react4.useEffect)(() => {
       setNodes([]);
       setSelected(null);
       if (!world) return;
@@ -7556,7 +7665,7 @@
         setNodes(list);
         setError(null);
       }).catch((e) => {
-        if (alive) setError(message2(e));
+        if (alive) setError(message3(e));
       }).finally(() => {
         if (alive) setLoading(false);
       });
@@ -7564,7 +7673,7 @@
         alive = false;
       };
     }, [world]);
-    (0, import_react3.useEffect)(() => {
+    (0, import_react4.useEffect)(() => {
       let alive = true;
       if (!world) {
         setMissing([]);
@@ -7579,12 +7688,12 @@
         alive = false;
       };
     }, [world, nodes]);
-    const reloadNodes = (0, import_react3.useCallback)(async () => {
+    const reloadNodes = (0, import_react4.useCallback)(async () => {
       if (!world) return;
       try {
         setNodes(await listNodes(world));
       } catch (e) {
-        setError(message2(e));
+        setError(message3(e));
       }
     }, [world]);
     const selectNode = async (record) => {
@@ -7593,16 +7702,16 @@
       try {
         setSelected(await readNode(world, id));
       } catch (e) {
-        setError(message2(e));
+        setError(message3(e));
       }
     };
-    const openFindingNode = async (id) => {
+    const openNodeById = async (id) => {
       setView("nodes");
       if (!world) return;
       try {
         setSelected(await readNode(world, id));
       } catch (e) {
-        setError(message2(e));
+        setError(message3(e));
       }
     };
     const newEntry = () => {
@@ -7614,7 +7723,7 @@
       void reloadNodes();
     };
     const stageMeta = STAGES.find((s) => s.id === stage) ?? STAGES[0];
-    return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: {
+    return /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { style: {
       position: "absolute",
       inset: 0,
       zIndex: 41,
@@ -7624,7 +7733,7 @@
       flexDirection: "column",
       fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif'
     }, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("header", { style: {
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("header", { style: {
         display: "flex",
         alignItems: "center",
         gap: 16,
@@ -7632,11 +7741,11 @@
         background: "#fff",
         borderBottom: "1px solid #e7e2da"
       }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("strong", { style: { fontSize: 15 }, children: "\u5C0F\u8BF4\u5DE5\u4F5C\u53F0" }),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("nav", { style: { display: "flex", gap: 6 }, children: STAGES.map((item) => {
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("strong", { style: { fontSize: 15 }, children: "\u5C0F\u8BF4\u5DE5\u4F5C\u53F0" }),
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("nav", { style: { display: "flex", gap: 6 }, children: STAGES.map((item) => {
           const enabled = item.id === "setting";
           const active = item.id === stage;
-          return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+          return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
             "button",
             {
               type: "button",
@@ -7659,10 +7768,10 @@
             item.id
           );
         }) }),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { style: { flex: 1 } })
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { style: { flex: 1 } })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { display: "flex", flex: 1, minHeight: 0 }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("aside", { style: {
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { style: { display: "flex", flex: 1, minHeight: 0 }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("aside", { style: {
           width: 200,
           flexShrink: 0,
           padding: "12px 10px",
@@ -7670,11 +7779,11 @@
           borderRight: "1px solid #e7e2da",
           overflow: "auto"
         }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: { fontSize: 11, letterSpacing: 1, ...muted, padding: "0 8px 8px" }, children: "\u8BBE\u5B9A\u7CFB\u7EDF" }),
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("ul", { style: { listStyle: "none", margin: 0, padding: 0 }, children: SYSTEMS.map((item) => {
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { style: { fontSize: 11, letterSpacing: 1, ...muted, padding: "0 8px 8px" }, children: "\u8BBE\u5B9A\u7CFB\u7EDF" }),
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("ul", { style: { listStyle: "none", margin: 0, padding: 0 }, children: SYSTEMS.map((item) => {
             const enabled = item.id === "world";
             const active = item.id === system;
-            return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("li", { children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
+            return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("li", { children: /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(
               "button",
               {
                 type: "button",
@@ -7699,22 +7808,22 @@
                   textAlign: "left"
                 },
                 children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { children: item.label }),
-                  /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { style: { fontSize: 10 }, children: active ? "\u25CF" : "\u25CB" })
+                  /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { children: item.label }),
+                  /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { style: { fontSize: 10 }, children: active ? "\u25CF" : "\u25CB" })
                 ]
               }
             ) }, item.id);
           }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { marginTop: 16, padding: "0 8px", fontSize: 11, ...muted }, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { children: "\u8BCA\u65AD\uFF1A\u89C1\u4E16\u754C\u89C2\u9762\u677F\u300C\u8BCA\u65AD\u300D\u6807\u7B7E" }),
-            missing.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { marginTop: 6, fontSize: 12, color: "#a60" }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { style: { marginTop: 16, padding: "0 8px", fontSize: 11, ...muted }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { children: "\u8BCA\u65AD\uFF1A\u89C1\u4E16\u754C\u89C2\u9762\u677F\u300C\u8BCA\u65AD\u300D\u6807\u7B7E" }),
+            missing.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { style: { marginTop: 6, fontSize: 12, color: "#a60" }, children: [
               "\u672A\u5B9A\u4E49\u4E13\u540D\uFF1A",
               missing.join("\u3001")
             ] }) : null
           ] })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("main", { style: { flex: 1, minWidth: 0, display: "flex", flexDirection: "column", overflow: "auto" }, children: stage === "setting" && system === "world" ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: {
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("main", { style: { flex: 1, minWidth: 0, display: "flex", flexDirection: "column", overflow: "auto" }, children: stage === "setting" && system === "world" ? /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { style: { display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { style: {
             display: "flex",
             alignItems: "center",
             gap: 10,
@@ -7722,18 +7831,18 @@
             borderBottom: "1px solid #e7e2da",
             background: "#fff"
           }, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { style: { fontSize: 12, ...muted }, children: "\u4E16\u754C" }),
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { style: { fontSize: 12, ...muted }, children: "\u4E16\u754C" }),
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
               "select",
               {
                 value: world,
                 disabled: worlds.length === 0,
                 onChange: (e) => setWorld(e.target.value),
                 style: { padding: "5px 8px", borderRadius: 6, border: "1px solid #e7e2da", background: "#fff" },
-                children: worlds.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("option", { value: "", children: "\u8FD8\u6CA1\u6709\u4E16\u754C" }) : worlds.map((w) => /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("option", { value: w, children: w }, w))
+                children: worlds.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("option", { value: "", children: "\u8FD8\u6CA1\u6709\u4E16\u754C" }) : worlds.map((w) => /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("option", { value: w, children: w }, w))
               }
             ),
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { role: "tablist", "aria-label": "\u4E16\u754C\u89C2\u89C6\u56FE", style: {
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { role: "tablist", "aria-label": "\u4E16\u754C\u89C2\u89C6\u56FE", style: {
               display: "flex",
               gap: 2,
               padding: 2,
@@ -7742,7 +7851,7 @@
               background: "#faf9f7"
             }, children: WORLD_VIEWS.map((item) => {
               const active = view === item.id;
-              return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+              return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
                 "button",
                 {
                   type: "button",
@@ -7764,7 +7873,7 @@
                 item.id
               );
             }) }),
-            view === "nodes" ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("button", { type: "button", onClick: newEntry, disabled: !world, style: {
+            view === "nodes" ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("button", { type: "button", onClick: newEntry, disabled: !world, style: {
               padding: "5px 12px",
               borderRadius: 6,
               border: "1px solid #e7e2da",
@@ -7773,9 +7882,9 @@
               cursor: world ? "pointer" : "not-allowed",
               fontSize: 13
             }, children: "\uFF0B \u65B0\u5EFA\u6761\u76EE" }) : null,
-            loading ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { style: { fontSize: 12, ...muted }, children: "\u52A0\u8F7D\u4E2D\u2026" }) : null
+            loading ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { style: { fontSize: 12, ...muted }, children: "\u52A0\u8F7D\u4E2D\u2026" }) : null
           ] }),
-          error ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { role: "alert", style: {
+          error ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { role: "alert", style: {
             margin: "10px 16px 0",
             padding: "8px 10px",
             borderRadius: 6,
@@ -7784,8 +7893,8 @@
             color: "#b91c1c",
             fontSize: 13
           }, children: error }) : null,
-          worlds.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: { padding: 24, color: "#a8a29a" }, children: "\u5728 data/worlds/ \u4E0B\u8FD8\u6CA1\u6709\u4E16\u754C\u3002\u5148\u7528\u7F16\u8F91\u5668\u521B\u5EFA world.yaml \u4E0E nodes/ \u76EE\u5F55\u3002" }) : view === "findings" ? world ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Findings, { worldId: world, onOpen: (id) => void openFindingNode(id) }) : /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: { padding: 24, color: "#a8a29a" }, children: "\u52A0\u8F7D\u4E2D\u2026" }) : /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { display: "flex", flex: 1, minHeight: 0 }, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: {
+          worlds.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { style: { padding: 24, color: "#a8a29a" }, children: "\u5728 data/worlds/ \u4E0B\u8FD8\u6CA1\u6709\u4E16\u754C\u3002\u5148\u7528\u7F16\u8F91\u5668\u521B\u5EFA world.yaml \u4E0E nodes/ \u76EE\u5F55\u3002" }) : view === "findings" ? world ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Findings, { worldId: world, onOpen: (id) => void openNodeById(id) }) : /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { style: { padding: 24, color: "#a8a29a" }, children: "\u52A0\u8F7D\u4E2D\u2026" }) : view === "timeline" ? world ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Timeline, { worldId: world, onOpen: (id) => void openNodeById(id) }) : /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { style: { padding: 24, color: "#a8a29a" }, children: "\u52A0\u8F7D\u4E2D\u2026" }) : /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { style: { display: "flex", flex: 1, minHeight: 0 }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { style: {
               width: 220,
               flexShrink: 0,
               borderRight: "1px solid #e7e2da",
@@ -7793,11 +7902,11 @@
               overflow: "auto",
               padding: "8px 6px"
             }, children: [
-              nodes.length === 0 && !loading ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: { padding: 8, fontSize: 12, ...muted }, children: "\u8FD8\u6CA1\u6709\u6761\u76EE" }) : null,
+              nodes.length === 0 && !loading ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { style: { padding: 8, fontSize: 12, ...muted }, children: "\u8FD8\u6CA1\u6709\u6761\u76EE" }) : null,
               nodes.map((node) => {
                 const id = String(node["id"] ?? "");
                 const active = selected !== null && String(selected["id"] ?? "") === id;
-                return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
+                return /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(
                   "button",
                   {
                     type: "button",
@@ -7819,15 +7928,15 @@
                       textAlign: "left"
                     },
                     children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { style: { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: String(node["title"] ?? id) }),
-                      node["kind"] === "axiom" ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { style: { fontSize: 10, color: "#b45309", flexShrink: 0 }, children: "\u516C\u7406" }) : null
+                      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { style: { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: String(node["title"] ?? id) }),
+                      node["kind"] === "axiom" ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { style: { fontSize: 10, color: "#b45309", flexShrink: 0 }, children: "\u516C\u7406" }) : null
                     ]
                   },
                   id
                 );
               })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: { flex: 1, minWidth: 0, overflow: "auto" }, children: selected ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { style: { flex: 1, minWidth: 0, overflow: "auto" }, children: selected ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
               NodeEditor,
               {
                 world,
@@ -7835,10 +7944,10 @@
                 onSaved: handleSaved
               },
               String(selected["id"] ?? "")
-            ) : /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: { padding: 24, color: "#a8a29a" }, children: "\u9009\u62E9\u5DE6\u4FA7\u6761\u76EE\uFF0C\u6216\u65B0\u5EFA\u4E00\u6761\u3002" }) })
+            ) : /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { style: { padding: 24, color: "#a8a29a" }, children: "\u9009\u62E9\u5DE6\u4FA7\u6761\u76EE\uFF0C\u6216\u65B0\u5EFA\u4E00\u6761\u3002" }) })
           ] })
-        ] }) : /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(StagePlaceholder, { title: stageMeta.label, reason: stageMeta.reason || "\u5C1A\u672A\u5B9E\u73B0" }) }),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("aside", { "aria-label": "\u68C0\u67E5\u5668\uFF08\u672C\u4EFB\u52A1\u7559\u7A7A\uFF09", style: {
+        ] }) : /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(StagePlaceholder, { title: stageMeta.label, reason: stageMeta.reason || "\u5C1A\u672A\u5B9E\u73B0" }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("aside", { "aria-label": "\u68C0\u67E5\u5668\uFF08\u672C\u4EFB\u52A1\u7559\u7A7A\uFF09", style: {
           width: 220,
           flexShrink: 0,
           borderLeft: "1px solid #e7e2da",
@@ -7849,8 +7958,8 @@
   }
 
   // src/ui/main.tsx
-  var import_jsx_runtime5 = __toESM(require_jsx_runtime(), 1);
-  (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime5.jsx)(App, {}));
+  var import_jsx_runtime6 = __toESM(require_jsx_runtime(), 1);
+  (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime6.jsx)(App, {}));
 })();
 /*! Bundled license information:
 
