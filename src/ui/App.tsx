@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { listNodes, listWorlds, readNode, type NodeRecord } from './api';
-import { NodeEditor } from './views/NodeEditor';
-import { StagePlaceholder } from './views/StagePlaceholder';
+import { listNodes, listWorlds, missingLinks, readNode, type NodeRecord } from './api.js';
+import { NodeEditor } from './views/NodeEditor.js';
+import { StagePlaceholder } from './views/StagePlaceholder.js';
 
 type StageId = 'setting' | 'planning' | 'writing';
 type SystemId = 'world' | 'geography' | 'characters' | 'factions' | 'chronicle' | 'events';
@@ -35,6 +35,7 @@ export function App() {
   const [selected, setSelected] = useState<NodeRecord | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [missing, setMissing] = useState<string[]>([]);
 
   const reloadWorlds = useCallback(async () => {
     try {
@@ -73,6 +74,18 @@ export function App() {
       alive = false;
     };
   }, [world]);
+
+  useEffect(() => {
+    let alive = true;
+    if (!world) {
+      setMissing([]);
+      return;
+    }
+    missingLinks(world)
+      .then((r) => { if (alive) setMissing(r.missing); })
+      .catch(() => { if (alive) setMissing([]); });
+    return () => { alive = false; };
+  }, [world, nodes]);
 
   const reloadNodes = useCallback(async () => {
     if (!world) return;
@@ -171,7 +184,14 @@ export function App() {
               );
             })}
           </ul>
-          <div style={{ marginTop: 16, padding: '0 8px', fontSize: 11, ...muted }}>诊断：尚未接入</div>
+          <div style={{ marginTop: 16, padding: '0 8px', fontSize: 11, ...muted }}>
+            <div>诊断：尚未接入</div>
+            {missing.length > 0 ? (
+              <div style={{ marginTop: 6, fontSize: 12, color: '#a60' }}>
+                未定义专名：{missing.join('、')}
+              </div>
+            ) : null}
+          </div>
         </aside>
 
         <main style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'auto' }}>

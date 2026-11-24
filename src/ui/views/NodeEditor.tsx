@@ -1,21 +1,33 @@
 import { useEffect, useState } from 'react';
-import { saveNode, type NodeRecord } from '../api';
+import { citations, saveNode, type Citations, type NodeRecord } from '../api.js';
 
 export function NodeEditor({ world, node, onSaved }: {
   world: string;
   node: NodeRecord;
   onSaved: (node: NodeRecord) => void;
 }) {
+  const id = String(node['id'] ?? '');
   const [title, setTitle] = useState(String(node['title'] ?? ''));
   const [body, setBody] = useState(String(node['body'] ?? ''));
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [refs, setRefs] = useState<Citations | null>(null);
 
   useEffect(() => {
     setTitle(String(node['title'] ?? ''));
     setBody(String(node['body'] ?? ''));
     setError(null);
   }, [node]);
+
+  useEffect(() => {
+    let alive = true;
+    setRefs(null);
+    if (!world || !id) return;
+    citations(world, id)
+      .then((r) => { if (alive) setRefs(r); })
+      .catch(() => { if (alive) setRefs(null); });
+    return () => { alive = false; };
+  }, [world, id]);
 
   const save = async () => {
     setSaving(true);
@@ -31,7 +43,6 @@ export function NodeEditor({ world, node, onSaved }: {
     }
   };
 
-  const id = String(node['id'] ?? '');
   const isAxiom = node['kind'] === 'axiom';
 
   return (
@@ -68,6 +79,13 @@ export function NodeEditor({ world, node, onSaved }: {
           padding: '8px 10px', borderRadius: 6, background: '#fef2f2',
           border: '1px solid #fecaca', color: '#b91c1c', whiteSpace: 'pre-wrap',
         }}>{error}</div>
+      ) : null}
+
+      {refs ? (
+        <div style={{ marginTop: 24, fontSize: 13, color: '#a8a29a', lineHeight: 1.7 }}>
+          <div>被片段引用：{refs.fragments.length ? refs.fragments.join('、') : '无'}</div>
+          <div>被条目引用：{refs.nodes.length ? refs.nodes.map((r) => `${r.title}(${r.via})`).join('、') : '无'}</div>
+        </div>
       ) : null}
     </div>
   );

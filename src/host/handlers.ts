@@ -1,6 +1,6 @@
 import * as store from './store.js';
 import { isSafeName } from './safeName.js';
-import { buildGraph } from '../engine/graph.js';
+import { buildGraph, type Graph } from '../engine/graph.js';
 import type { Span, Strength, WorldNode } from '../engine/types.js';
 
 export interface NovelReq { method: string; path: string; query: Record<string, string>; body: unknown }
@@ -64,6 +64,35 @@ function toNode(input: JsonRecord, prev: WorldNode | null): WorldNode {
   };
 }
 
+/**
+ * 一个节点的全部入边，按引用来源去重。buildGraph 可能为同一片段生成重复 cites
+ * 边（标题与别名都指向同一节点），界面和 409 文案都不该重复列出。
+ */
+export interface CitationRefs {
+  fragments: string[];
+  nodes: { id: string; title: string; via: string }[];
+}
+
+function collectRefs(g: Graph, nodeId: string): CitationRefs {
+  const fragments = new Set<string>();
+  const nodes = new Map<string, CitationRefs['nodes'][number]>();
+  for (const edge of g.inbound.get(nodeId) ?? []) {
+    if (edge.type === 'cites') {
+      fragments.add(edge.from.replace(/^fragments\//, '').replace(/\.md$/, ''));
+      continue;
+    }
+    const key = `${edge.from}\u0000${edge.type}`;
+    if (!nodes.has(key)) {
+      nodes.set(key, {
+        id: edge.from,
+        title: g.nodes.get(edge.from)?.title ?? edge.from,
+        via: edge.type,
+      });
+    }
+  }
+  return { fragments: [...fragments], nodes: [...nodes.values()] };
+}
+
 export function createHandlers(root: string): (req: NovelReq) => Promise<NovelRes> {
   return async function handle(req: NovelReq): Promise<NovelRes> {
     try {
@@ -105,6 +134,13 @@ export function createHandlers(root: string): (req: NovelReq) => Promise<NovelRe
       if (parts[2] === 'nodes' && parts.length === 3 && req.method === 'GET')
         return { status: 200, json: await store.listNodes(root, worldId) };
 
+      if (parts[2] === 'nodes' && parts.length === 5 && parts[4] === 'citations'
+        && req.method === 'GET') {
+        const nodeId = decodeURIComponent(parts[3]!);
+        const g = buildGraph(await store.listNodes(root, worldId), await store.listFragments(root, worldId));
+        return { status: 200, json: collectRefs(g, nodeId) };
+      }
+
       if (parts[2] === 'nodes' && parts.length === 4) {
         const nodeId = decodeURIComponent(parts[3]!);
         if (req.method === 'GET') {
@@ -118,6 +154,15 @@ export function createHandlers(root: string): (req: NovelReq) => Promise<NovelRe
           }
         }
         if (req.method === 'DELETE') {
+          const g = buildGraph(await store.listNodes(root, worldId), await store.listFragments(root, worldId));
+          const refs = collectRefs(g, nodeId);
+          const total = refs.fragments.length + refs.nodes.length;
+          if (total > 0) {
+            return { status: 409, json: {
+              error: `被 ${total} 处引用，删除会断链`,
+              refs
+            } };
+          }
           await store.deleteNode(root, worldId, nodeId);
           return { status: 204 };
         }
