@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
-import { listNodes, listWorlds, missingLinks, readNode, type NodeRecord } from './api.js';
+import {
+  listNodes, listWorlds, missingLinks, readNode, stats,
+  type NodeRecord, type Stats,
+} from './api.js';
 import { Findings } from './views/Findings.js';
 import { NodeEditor } from './views/NodeEditor.js';
+import { Onboarding } from './views/Onboarding.js';
 import { StagePlaceholder } from './views/StagePlaceholder.js';
 import { Timeline } from './views/Timeline.js';
 
@@ -46,6 +50,8 @@ export function App() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [missing, setMissing] = useState<string[]>([]);
+  /** null 表示「尚未加载」，不能据此显示开局引导。 */
+  const [stat, setStat] = useState<Stats | null>(null);
 
   const reloadWorlds = useCallback(async () => {
     try {
@@ -97,6 +103,19 @@ export function App() {
     return () => { alive = false; };
   }, [world, nodes]);
 
+  // 条目变化后重新取统计：新增公理、出口径变化都要让引导页的计数跟上。
+  useEffect(() => {
+    let alive = true;
+    if (!world) {
+      setStat(null);
+      return;
+    }
+    stats(world)
+      .then((s) => { if (alive) setStat(s); })
+      .catch(() => { if (alive) setStat(null); });
+    return () => { alive = false; };
+  }, [world, nodes]);
+
   const reloadNodes = useCallback(async () => {
     if (!world) return;
     try {
@@ -105,6 +124,21 @@ export function App() {
       setError(message(e));
     }
   }, [world]);
+
+  const reloadStats = useCallback(async () => {
+    if (!world) return;
+    try {
+      setStat(await stats(world));
+    } catch {
+      setStat(null);
+    }
+  }, [world]);
+
+  /** 引导页成功加一条公理后：计数与条目列表都要刷新，满三条才切回正常界面。 */
+  const handleOnboardingDone = () => {
+    void reloadStats();
+    void reloadNodes();
+  };
 
   const selectNode = async (record: NodeRecord) => {
     const id = String(record['id'] ?? '');
@@ -226,7 +260,7 @@ export function App() {
                 <select
                   value={world}
                   disabled={worlds.length === 0}
-                  onChange={(e) => setWorld(e.target.value)}
+                  onChange={(e) => { setStat(null); setWorld(e.target.value); }}
                   style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid #e7e2da', background: '#fff' }}
                 >
                   {worlds.length === 0
@@ -286,6 +320,8 @@ export function App() {
                 world
                   ? <Timeline worldId={world} onOpen={(id) => void openNodeById(id)} />
                   : <div style={{ padding: 24, color: '#a8a29a' }}>加载中…</div>
+              ) : world && stat && stat.axioms < 3 && !selected ? (
+                <Onboarding worldId={world} stats={stat} onDone={handleOnboardingDone} />
               ) : (
                 <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
                   <div style={{

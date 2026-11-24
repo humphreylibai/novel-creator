@@ -28,6 +28,14 @@ export const listWorlds = () => j<string[]>('/worlds');
 
 export const listNodes = (w: string) => j<NodeRecord[]>(`/worlds/${encodeURIComponent(w)}/nodes`);
 
+export interface Stats {
+  axioms: number;
+  entries: number;
+  manifestedAxioms: number;
+}
+
+export const stats = (w: string) => j<Stats>(`/worlds/${encodeURIComponent(w)}/stats`);
+
 export const readNode = (w: string, id: string) =>
   j<NodeRecord>(`/worlds/${encodeURIComponent(w)}/nodes/${encodeURIComponent(id)}`);
 

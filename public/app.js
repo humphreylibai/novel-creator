@@ -7284,7 +7284,7 @@
   var import_client = __toESM(require_client(), 1);
 
   // src/ui/App.tsx
-  var import_react4 = __toESM(require_react(), 1);
+  var import_react5 = __toESM(require_react(), 1);
 
   // src/ui/api.ts
   async function j(path, init) {
@@ -7296,6 +7296,7 @@
   }
   var listWorlds = () => j("/worlds");
   var listNodes = (w) => j(`/worlds/${encodeURIComponent(w)}/nodes`);
+  var stats = (w) => j(`/worlds/${encodeURIComponent(w)}/stats`);
   var readNode = (w, id) => j(`/worlds/${encodeURIComponent(w)}/nodes/${encodeURIComponent(id)}`);
   var saveNode = (w, n) => j(`/worlds/${encodeURIComponent(w)}/nodes/${encodeURIComponent(String(n["id"]))}`, {
     method: "PUT",
@@ -7492,25 +7493,133 @@
     ] });
   }
 
-  // src/ui/views/StagePlaceholder.tsx
+  // src/ui/views/Onboarding.tsx
+  var import_react3 = __toESM(require_react(), 1);
   var import_jsx_runtime3 = __toESM(require_jsx_runtime(), 1);
+  var splitCost = (raw) => raw.split(/[、,，]/).map((s) => s.trim()).filter(Boolean);
+  function Onboarding({ worldId, stats: stats2, onDone }) {
+    const [title, setTitle] = (0, import_react3.useState)("");
+    const [cost, setCost] = (0, import_react3.useState)("");
+    const [err, setErr] = (0, import_react3.useState)(null);
+    const [saving, setSaving] = (0, import_react3.useState)(false);
+    const addAxiom = async () => {
+      if (!title.trim() || saving) return;
+      setSaving(true);
+      setErr(null);
+      try {
+        await saveNode(worldId, {
+          id: `W-AX-${Date.now()}`,
+          kind: "axiom",
+          title: title.trim(),
+          strength: "hard",
+          cost: splitCost(cost),
+          body: ""
+        });
+        setTitle("");
+        setCost("");
+        onDone();
+      } catch (e) {
+        setErr(e instanceof Error ? e.message : String(e));
+      } finally {
+        setSaving(false);
+      }
+    };
+    return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: { padding: 32, maxWidth: 680 }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("h2", { style: { marginTop: 0, fontSize: 20 }, children: "\u5F00\u59CB\u4E00\u4E2A\u4E16\u754C" }),
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("section", { style: { marginBottom: 24 }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("h3", { style: { margin: "0 0 6px", fontSize: 14 }, children: "\u2460 \u8FD9\u4E2A\u4E16\u754C\u6700\u6839\u672C\u7684\u7F3A\u5931\u662F\u4EC0\u4E48\uFF1F" }),
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { style: { margin: 0, color: "#6b645c", fontSize: 13, lineHeight: 1.7 }, children: "\u5199\u5728 world.yaml \u7684 theme.wound \u91CC\u3002\u5B83\u51B3\u5B9A\u4E86\u8FD9\u4E2A\u4E16\u754C\u4E3A\u4EC0\u4E48\u503C\u5F97\u88AB\u8BB2\u8FF0\u3002" })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("section", { style: { marginBottom: 24 }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("h3", { style: { margin: "0 0 6px", fontSize: 14 }, children: [
+          "\u2461 \u81F3\u5C11\u4E09\u6761\u516C\u7406\uFF0C\u6BCF\u6761\u5FC5\u987B\u4ED8\u51FA\u4EE3\u4EF7",
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("span", { style: { marginLeft: 8, color: "#b45309", fontWeight: 400 }, children: [
+            "\u5F53\u524D ",
+            stats2.axioms,
+            " / 3"
+          ] })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+          "input",
+          {
+            placeholder: "\u516C\u7406\uFF0C\u4F8B\u5982\uFF1A\u65BD\u6CD5\u4F1A\u6C38\u4E45\u70E7\u6BC1\u65BD\u6CD5\u8005\u7684\u8BB0\u5FC6",
+            value: title,
+            onChange: (e) => setTitle(e.target.value),
+            style: { width: "100%", padding: 8, boxSizing: "border-box", border: "1px solid #e7e2da", borderRadius: 6 }
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+          "input",
+          {
+            placeholder: "\u4EE3\u4EF7\uFF0C\u7528\u987F\u53F7\u5206\u9694\uFF0C\u4F8B\u5982\uFF1A\u8BB0\u5FC6\u3001\u8EAB\u4EFD",
+            value: cost,
+            onChange: (e) => setCost(e.target.value),
+            style: { width: "100%", padding: 8, marginTop: 8, boxSizing: "border-box", border: "1px solid #e7e2da", borderRadius: 6 }
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+          "button",
+          {
+            type: "button",
+            onClick: () => void addAxiom(),
+            disabled: !title.trim() || saving,
+            style: {
+              marginTop: 8,
+              padding: "6px 14px",
+              borderRadius: 6,
+              border: "1px solid #b45309",
+              background: !title.trim() || saving ? "#e7e2da" : "#b45309",
+              color: !title.trim() || saving ? "#a8a29a" : "#fff",
+              cursor: !title.trim() || saving ? "not-allowed" : "pointer"
+            },
+            children: saving ? "\u4FDD\u5B58\u4E2D\u2026" : "\u52A0\u4E00\u6761\u516C\u7406"
+          }
+        ),
+        err ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { role: "alert", style: {
+          marginTop: 8,
+          padding: "8px 10px",
+          borderRadius: 6,
+          background: "#fef2f2",
+          border: "1px solid #fecaca",
+          color: "#b91c1c",
+          fontSize: 13,
+          whiteSpace: "pre-wrap"
+        }, children: err }) : null
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("section", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("h3", { style: { margin: "0 0 6px", fontSize: 14 }, children: [
+          "\u2462 \u6BCF\u6761\u516C\u7406\u81F3\u5C11\u4E24\u4E2A\u201C\u80FD\u770B\u89C1\u7684\u4E1C\u897F\u201D",
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("span", { style: { marginLeft: 8, color: "#b45309", fontWeight: 400 }, children: [
+            "\u5DF2\u8FBE\u6807 ",
+            stats2.manifestedAxioms,
+            " / ",
+            stats2.axioms
+          ] })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { style: { margin: 0, color: "#6b645c", fontSize: 13, lineHeight: 1.7 }, children: "\u7ED9\u6BCF\u6761\u516C\u7406\u6302\u4E0A\u81F3\u5C11\u4E24\u6761 manifest\uFF1A\u4EEA\u5F0F\u3001\u5668\u7269\u3001\u79F0\u8C13\u3001\u7981\u4EE4\u7686\u53EF\u3002\u51D1\u6EE1\u4E09\u6761\u516C\u7406\u540E\u8FDB\u5165\u6B63\u5E38\u754C\u9762\u3002" })
+      ] })
+    ] });
+  }
+
+  // src/ui/views/StagePlaceholder.tsx
+  var import_jsx_runtime4 = __toESM(require_jsx_runtime(), 1);
   function StagePlaceholder({ title, reason }) {
-    return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: { padding: 32, color: "#a8a29a" }, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("h2", { style: { margin: "0 0 8px", fontSize: 18, color: "#57534e" }, children: title }),
-      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { style: { margin: 0 }, children: reason })
+    return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { padding: 32, color: "#a8a29a" }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("h2", { style: { margin: "0 0 8px", fontSize: 18, color: "#57534e" }, children: title }),
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { style: { margin: 0 }, children: reason })
     ] });
   }
 
   // src/ui/views/Timeline.tsx
-  var import_react3 = __toESM(require_react(), 1);
-  var import_jsx_runtime4 = __toESM(require_jsx_runtime(), 1);
+  var import_react4 = __toESM(require_react(), 1);
+  var import_jsx_runtime5 = __toESM(require_jsx_runtime(), 1);
   var message2 = (e) => e instanceof Error ? e.message : String(e);
   function Timeline({ worldId, onOpen }) {
-    const [year, setYear] = (0, import_react3.useState)(612);
-    const [rows, setRows] = (0, import_react3.useState)([]);
-    const [error, setError] = (0, import_react3.useState)(null);
-    const [loading, setLoading] = (0, import_react3.useState)(false);
-    (0, import_react3.useEffect)(() => {
+    const [year, setYear] = (0, import_react4.useState)(612);
+    const [rows, setRows] = (0, import_react4.useState)([]);
+    const [error, setError] = (0, import_react4.useState)(null);
+    const [loading, setLoading] = (0, import_react4.useState)(false);
+    (0, import_react4.useEffect)(() => {
       let alive = true;
       setError(null);
       setLoading(true);
@@ -7527,15 +7636,15 @@
         alive = false;
       };
     }, [worldId, year]);
-    return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { padding: 24, maxWidth: 900 }, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("h2", { style: { marginTop: 0, fontSize: 17 }, children: [
+    return /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { style: { padding: 24, maxWidth: 900 }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("h2", { style: { marginTop: 0, fontSize: 17 }, children: [
         "\u65F6\u95F4\u8F74 \xB7 \u7EAA\u5143 ",
         year,
         " \u5E74",
-        loading ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { style: { marginLeft: 8, fontSize: 12, color: "#a8a29a" }, children: "\u52A0\u8F7D\u4E2D\u2026" }) : null
+        loading ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { style: { marginLeft: 8, fontSize: 12, color: "#a8a29a" }, children: "\u52A0\u8F7D\u4E2D\u2026" }) : null
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { marginBottom: 16, display: "flex", alignItems: "center" }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { style: { marginBottom: 16, display: "flex", alignItems: "center" }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
           "input",
           {
             type: "range",
@@ -7547,18 +7656,18 @@
             style: { width: 480 }
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { style: { marginLeft: 12, fontSize: 13 }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("span", { style: { marginLeft: 12, fontSize: 13 }, children: [
           "\u7EAA\u5143 ",
           year,
           " \u5E74"
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { style: { marginLeft: 12, fontSize: 12, color: "#a8a29a" }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("span", { style: { marginLeft: 12, fontSize: 12, color: "#a8a29a" }, children: [
           "\u5728\u573A ",
           rows.length,
           " \u6761"
         ] })
       ] }),
-      error ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { role: "alert", style: {
+      error ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { role: "alert", style: {
         padding: "8px 10px",
         borderRadius: 6,
         background: "#fef2f2",
@@ -7566,8 +7675,8 @@
         color: "#b91c1c",
         fontSize: 13
       }, children: error }) : null,
-      !error && !loading && rows.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { style: { color: "#a8a29a" }, children: "\u8FD9\u4E00\u5E74\u6CA1\u6709\u5728\u573A\u7684\u6761\u76EE\u3002" }) : null,
-      rows.map((n) => /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
+      !error && !loading && rows.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("p", { style: { color: "#a8a29a" }, children: "\u8FD9\u4E00\u5E74\u6CA1\u6709\u5728\u573A\u7684\u6761\u76EE\u3002" }) : null,
+      rows.map((n) => /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(
         "div",
         {
           style: {
@@ -7578,13 +7687,13 @@
             borderBottom: "1px solid #f0f0f0"
           },
           children: [
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { style: { width: 320, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: n.title }),
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { style: { color: "#a8a29a", fontSize: 12, width: 120 }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { style: { width: 320, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: n.title }),
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("span", { style: { color: "#a8a29a", fontSize: 12, width: 120 }, children: [
               n.span.from ?? "\u2014",
               " \u2192 ",
               n.span.to ?? "\u81F3\u4ECA"
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
               "button",
               {
                 type: "button",
@@ -7609,7 +7718,7 @@
   }
 
   // src/ui/App.tsx
-  var import_jsx_runtime5 = __toESM(require_jsx_runtime(), 1);
+  var import_jsx_runtime6 = __toESM(require_jsx_runtime(), 1);
   var WORLD_VIEWS = [
     { id: "nodes", label: "\u6761\u76EE" },
     { id: "findings", label: "\u8BCA\u65AD" },
@@ -7631,17 +7740,18 @@
   var message3 = (e) => e instanceof Error ? e.message : String(e);
   var muted = { color: "#a8a29a" };
   function App() {
-    const [stage, setStage] = (0, import_react4.useState)("setting");
-    const [system, setSystem] = (0, import_react4.useState)("world");
-    const [view, setView] = (0, import_react4.useState)("nodes");
-    const [worlds, setWorlds] = (0, import_react4.useState)([]);
-    const [world, setWorld] = (0, import_react4.useState)("");
-    const [nodes, setNodes] = (0, import_react4.useState)([]);
-    const [selected, setSelected] = (0, import_react4.useState)(null);
-    const [error, setError] = (0, import_react4.useState)(null);
-    const [loading, setLoading] = (0, import_react4.useState)(false);
-    const [missing, setMissing] = (0, import_react4.useState)([]);
-    const reloadWorlds = (0, import_react4.useCallback)(async () => {
+    const [stage, setStage] = (0, import_react5.useState)("setting");
+    const [system, setSystem] = (0, import_react5.useState)("world");
+    const [view, setView] = (0, import_react5.useState)("nodes");
+    const [worlds, setWorlds] = (0, import_react5.useState)([]);
+    const [world, setWorld] = (0, import_react5.useState)("");
+    const [nodes, setNodes] = (0, import_react5.useState)([]);
+    const [selected, setSelected] = (0, import_react5.useState)(null);
+    const [error, setError] = (0, import_react5.useState)(null);
+    const [loading, setLoading] = (0, import_react5.useState)(false);
+    const [missing, setMissing] = (0, import_react5.useState)([]);
+    const [stat, setStat] = (0, import_react5.useState)(null);
+    const reloadWorlds = (0, import_react5.useCallback)(async () => {
       try {
         const list = await listWorlds();
         setWorlds(list);
@@ -7651,10 +7761,10 @@
         setError(message3(e));
       }
     }, []);
-    (0, import_react4.useEffect)(() => {
+    (0, import_react5.useEffect)(() => {
       void reloadWorlds();
     }, [reloadWorlds]);
-    (0, import_react4.useEffect)(() => {
+    (0, import_react5.useEffect)(() => {
       setNodes([]);
       setSelected(null);
       if (!world) return;
@@ -7673,7 +7783,7 @@
         alive = false;
       };
     }, [world]);
-    (0, import_react4.useEffect)(() => {
+    (0, import_react5.useEffect)(() => {
       let alive = true;
       if (!world) {
         setMissing([]);
@@ -7688,7 +7798,22 @@
         alive = false;
       };
     }, [world, nodes]);
-    const reloadNodes = (0, import_react4.useCallback)(async () => {
+    (0, import_react5.useEffect)(() => {
+      let alive = true;
+      if (!world) {
+        setStat(null);
+        return;
+      }
+      stats(world).then((s) => {
+        if (alive) setStat(s);
+      }).catch(() => {
+        if (alive) setStat(null);
+      });
+      return () => {
+        alive = false;
+      };
+    }, [world, nodes]);
+    const reloadNodes = (0, import_react5.useCallback)(async () => {
       if (!world) return;
       try {
         setNodes(await listNodes(world));
@@ -7696,6 +7821,18 @@
         setError(message3(e));
       }
     }, [world]);
+    const reloadStats = (0, import_react5.useCallback)(async () => {
+      if (!world) return;
+      try {
+        setStat(await stats(world));
+      } catch {
+        setStat(null);
+      }
+    }, [world]);
+    const handleOnboardingDone = () => {
+      void reloadStats();
+      void reloadNodes();
+    };
     const selectNode = async (record) => {
       const id = String(record["id"] ?? "");
       if (!world || !id) return;
@@ -7723,7 +7860,7 @@
       void reloadNodes();
     };
     const stageMeta = STAGES.find((s) => s.id === stage) ?? STAGES[0];
-    return /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { style: {
+    return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { style: {
       position: "absolute",
       inset: 0,
       zIndex: 41,
@@ -7733,7 +7870,7 @@
       flexDirection: "column",
       fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif'
     }, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("header", { style: {
+      /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("header", { style: {
         display: "flex",
         alignItems: "center",
         gap: 16,
@@ -7741,11 +7878,11 @@
         background: "#fff",
         borderBottom: "1px solid #e7e2da"
       }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("strong", { style: { fontSize: 15 }, children: "\u5C0F\u8BF4\u5DE5\u4F5C\u53F0" }),
-        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("nav", { style: { display: "flex", gap: 6 }, children: STAGES.map((item) => {
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("strong", { style: { fontSize: 15 }, children: "\u5C0F\u8BF4\u5DE5\u4F5C\u53F0" }),
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("nav", { style: { display: "flex", gap: 6 }, children: STAGES.map((item) => {
           const enabled = item.id === "setting";
           const active = item.id === stage;
-          return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+          return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
             "button",
             {
               type: "button",
@@ -7768,10 +7905,10 @@
             item.id
           );
         }) }),
-        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { style: { flex: 1 } })
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { style: { flex: 1 } })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { style: { display: "flex", flex: 1, minHeight: 0 }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("aside", { style: {
+      /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { style: { display: "flex", flex: 1, minHeight: 0 }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("aside", { style: {
           width: 200,
           flexShrink: 0,
           padding: "12px 10px",
@@ -7779,11 +7916,11 @@
           borderRight: "1px solid #e7e2da",
           overflow: "auto"
         }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { style: { fontSize: 11, letterSpacing: 1, ...muted, padding: "0 8px 8px" }, children: "\u8BBE\u5B9A\u7CFB\u7EDF" }),
-          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("ul", { style: { listStyle: "none", margin: 0, padding: 0 }, children: SYSTEMS.map((item) => {
+          /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { style: { fontSize: 11, letterSpacing: 1, ...muted, padding: "0 8px 8px" }, children: "\u8BBE\u5B9A\u7CFB\u7EDF" }),
+          /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("ul", { style: { listStyle: "none", margin: 0, padding: 0 }, children: SYSTEMS.map((item) => {
             const enabled = item.id === "world";
             const active = item.id === system;
-            return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("li", { children: /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(
+            return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("li", { children: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(
               "button",
               {
                 type: "button",
@@ -7808,22 +7945,22 @@
                   textAlign: "left"
                 },
                 children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { children: item.label }),
-                  /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { style: { fontSize: 10 }, children: active ? "\u25CF" : "\u25CB" })
+                  /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { children: item.label }),
+                  /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { style: { fontSize: 10 }, children: active ? "\u25CF" : "\u25CB" })
                 ]
               }
             ) }, item.id);
           }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { style: { marginTop: 16, padding: "0 8px", fontSize: 11, ...muted }, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { children: "\u8BCA\u65AD\uFF1A\u89C1\u4E16\u754C\u89C2\u9762\u677F\u300C\u8BCA\u65AD\u300D\u6807\u7B7E" }),
-            missing.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { style: { marginTop: 6, fontSize: 12, color: "#a60" }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { style: { marginTop: 16, padding: "0 8px", fontSize: 11, ...muted }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { children: "\u8BCA\u65AD\uFF1A\u89C1\u4E16\u754C\u89C2\u9762\u677F\u300C\u8BCA\u65AD\u300D\u6807\u7B7E" }),
+            missing.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { style: { marginTop: 6, fontSize: 12, color: "#a60" }, children: [
               "\u672A\u5B9A\u4E49\u4E13\u540D\uFF1A",
               missing.join("\u3001")
             ] }) : null
           ] })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("main", { style: { flex: 1, minWidth: 0, display: "flex", flexDirection: "column", overflow: "auto" }, children: stage === "setting" && system === "world" ? /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { style: { display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { style: {
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("main", { style: { flex: 1, minWidth: 0, display: "flex", flexDirection: "column", overflow: "auto" }, children: stage === "setting" && system === "world" ? /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { style: { display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { style: {
             display: "flex",
             alignItems: "center",
             gap: 10,
@@ -7831,18 +7968,21 @@
             borderBottom: "1px solid #e7e2da",
             background: "#fff"
           }, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { style: { fontSize: 12, ...muted }, children: "\u4E16\u754C" }),
-            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { style: { fontSize: 12, ...muted }, children: "\u4E16\u754C" }),
+            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
               "select",
               {
                 value: world,
                 disabled: worlds.length === 0,
-                onChange: (e) => setWorld(e.target.value),
+                onChange: (e) => {
+                  setStat(null);
+                  setWorld(e.target.value);
+                },
                 style: { padding: "5px 8px", borderRadius: 6, border: "1px solid #e7e2da", background: "#fff" },
-                children: worlds.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("option", { value: "", children: "\u8FD8\u6CA1\u6709\u4E16\u754C" }) : worlds.map((w) => /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("option", { value: w, children: w }, w))
+                children: worlds.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("option", { value: "", children: "\u8FD8\u6CA1\u6709\u4E16\u754C" }) : worlds.map((w) => /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("option", { value: w, children: w }, w))
               }
             ),
-            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { role: "tablist", "aria-label": "\u4E16\u754C\u89C2\u89C6\u56FE", style: {
+            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { role: "tablist", "aria-label": "\u4E16\u754C\u89C2\u89C6\u56FE", style: {
               display: "flex",
               gap: 2,
               padding: 2,
@@ -7851,7 +7991,7 @@
               background: "#faf9f7"
             }, children: WORLD_VIEWS.map((item) => {
               const active = view === item.id;
-              return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+              return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
                 "button",
                 {
                   type: "button",
@@ -7873,7 +8013,7 @@
                 item.id
               );
             }) }),
-            view === "nodes" ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("button", { type: "button", onClick: newEntry, disabled: !world, style: {
+            view === "nodes" ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("button", { type: "button", onClick: newEntry, disabled: !world, style: {
               padding: "5px 12px",
               borderRadius: 6,
               border: "1px solid #e7e2da",
@@ -7882,9 +8022,9 @@
               cursor: world ? "pointer" : "not-allowed",
               fontSize: 13
             }, children: "\uFF0B \u65B0\u5EFA\u6761\u76EE" }) : null,
-            loading ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { style: { fontSize: 12, ...muted }, children: "\u52A0\u8F7D\u4E2D\u2026" }) : null
+            loading ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { style: { fontSize: 12, ...muted }, children: "\u52A0\u8F7D\u4E2D\u2026" }) : null
           ] }),
-          error ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { role: "alert", style: {
+          error ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { role: "alert", style: {
             margin: "10px 16px 0",
             padding: "8px 10px",
             borderRadius: 6,
@@ -7893,8 +8033,8 @@
             color: "#b91c1c",
             fontSize: 13
           }, children: error }) : null,
-          worlds.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { style: { padding: 24, color: "#a8a29a" }, children: "\u5728 data/worlds/ \u4E0B\u8FD8\u6CA1\u6709\u4E16\u754C\u3002\u5148\u7528\u7F16\u8F91\u5668\u521B\u5EFA world.yaml \u4E0E nodes/ \u76EE\u5F55\u3002" }) : view === "findings" ? world ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Findings, { worldId: world, onOpen: (id) => void openNodeById(id) }) : /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { style: { padding: 24, color: "#a8a29a" }, children: "\u52A0\u8F7D\u4E2D\u2026" }) : view === "timeline" ? world ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Timeline, { worldId: world, onOpen: (id) => void openNodeById(id) }) : /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { style: { padding: 24, color: "#a8a29a" }, children: "\u52A0\u8F7D\u4E2D\u2026" }) : /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { style: { display: "flex", flex: 1, minHeight: 0 }, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { style: {
+          worlds.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { style: { padding: 24, color: "#a8a29a" }, children: "\u5728 data/worlds/ \u4E0B\u8FD8\u6CA1\u6709\u4E16\u754C\u3002\u5148\u7528\u7F16\u8F91\u5668\u521B\u5EFA world.yaml \u4E0E nodes/ \u76EE\u5F55\u3002" }) : view === "findings" ? world ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Findings, { worldId: world, onOpen: (id) => void openNodeById(id) }) : /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { style: { padding: 24, color: "#a8a29a" }, children: "\u52A0\u8F7D\u4E2D\u2026" }) : view === "timeline" ? world ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Timeline, { worldId: world, onOpen: (id) => void openNodeById(id) }) : /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { style: { padding: 24, color: "#a8a29a" }, children: "\u52A0\u8F7D\u4E2D\u2026" }) : world && stat && stat.axioms < 3 && !selected ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Onboarding, { worldId: world, stats: stat, onDone: handleOnboardingDone }) : /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { style: { display: "flex", flex: 1, minHeight: 0 }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { style: {
               width: 220,
               flexShrink: 0,
               borderRight: "1px solid #e7e2da",
@@ -7902,11 +8042,11 @@
               overflow: "auto",
               padding: "8px 6px"
             }, children: [
-              nodes.length === 0 && !loading ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { style: { padding: 8, fontSize: 12, ...muted }, children: "\u8FD8\u6CA1\u6709\u6761\u76EE" }) : null,
+              nodes.length === 0 && !loading ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { style: { padding: 8, fontSize: 12, ...muted }, children: "\u8FD8\u6CA1\u6709\u6761\u76EE" }) : null,
               nodes.map((node) => {
                 const id = String(node["id"] ?? "");
                 const active = selected !== null && String(selected["id"] ?? "") === id;
-                return /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(
+                return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(
                   "button",
                   {
                     type: "button",
@@ -7928,15 +8068,15 @@
                       textAlign: "left"
                     },
                     children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { style: { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: String(node["title"] ?? id) }),
-                      node["kind"] === "axiom" ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { style: { fontSize: 10, color: "#b45309", flexShrink: 0 }, children: "\u516C\u7406" }) : null
+                      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { style: { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: String(node["title"] ?? id) }),
+                      node["kind"] === "axiom" ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { style: { fontSize: 10, color: "#b45309", flexShrink: 0 }, children: "\u516C\u7406" }) : null
                     ]
                   },
                   id
                 );
               })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { style: { flex: 1, minWidth: 0, overflow: "auto" }, children: selected ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { style: { flex: 1, minWidth: 0, overflow: "auto" }, children: selected ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
               NodeEditor,
               {
                 world,
@@ -7944,10 +8084,10 @@
                 onSaved: handleSaved
               },
               String(selected["id"] ?? "")
-            ) : /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { style: { padding: 24, color: "#a8a29a" }, children: "\u9009\u62E9\u5DE6\u4FA7\u6761\u76EE\uFF0C\u6216\u65B0\u5EFA\u4E00\u6761\u3002" }) })
+            ) : /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { style: { padding: 24, color: "#a8a29a" }, children: "\u9009\u62E9\u5DE6\u4FA7\u6761\u76EE\uFF0C\u6216\u65B0\u5EFA\u4E00\u6761\u3002" }) })
           ] })
-        ] }) : /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(StagePlaceholder, { title: stageMeta.label, reason: stageMeta.reason || "\u5C1A\u672A\u5B9E\u73B0" }) }),
-        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("aside", { "aria-label": "\u68C0\u67E5\u5668\uFF08\u672C\u4EFB\u52A1\u7559\u7A7A\uFF09", style: {
+        ] }) : /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(StagePlaceholder, { title: stageMeta.label, reason: stageMeta.reason || "\u5C1A\u672A\u5B9E\u73B0" }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("aside", { "aria-label": "\u68C0\u67E5\u5668\uFF08\u672C\u4EFB\u52A1\u7559\u7A7A\uFF09", style: {
           width: 220,
           flexShrink: 0,
           borderLeft: "1px solid #e7e2da",
@@ -7958,8 +8098,8 @@
   }
 
   // src/ui/main.tsx
-  var import_jsx_runtime6 = __toESM(require_jsx_runtime(), 1);
-  (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime6.jsx)(App, {}));
+  var import_jsx_runtime7 = __toESM(require_jsx_runtime(), 1);
+  (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime7.jsx)(App, {}));
 })();
 /*! Bundled license information:
 
