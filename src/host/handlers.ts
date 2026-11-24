@@ -4,6 +4,7 @@ import { invalidateIndex } from './indexFile.js';
 import { buildGraph, type Graph } from '../engine/graph.js';
 import { runRules } from '../engine/rules/index.js';
 import { stateAt } from '../engine/query.js';
+import { interrogate, rulingAdvice, suggestProposition } from '../engine/suggest.js';
 import type { Belief, Span, Strength, WorldNode } from '../engine/types.js';
 
 export interface NovelReq { method: string; path: string; query: Record<string, string>; body: unknown }
@@ -170,6 +171,29 @@ export function createHandlers(root: string): (req: NovelReq) => Promise<NovelRe
         const nodeId = decodeURIComponent(parts[3]!);
         const g = buildGraph(await store.listNodes(root, worldId), await store.listFragments(root, worldId));
         return { status: 200, json: collectRefs(g, nodeId) };
+      }
+
+      if (parts[2] === 'nodes' && parts.length === 5 && parts[4] === 'suggest'
+        && req.method === 'GET') {
+        const nodeId = decodeURIComponent(parts[3]!);
+        let node: WorldNode;
+        try {
+          node = await store.readNode(root, worldId, nodeId);
+        } catch (e) {
+          if (e instanceof Error && e.message.startsWith('找不到节点'))
+            return { status: 404, json: { error: e.message } };
+          throw e;
+        }
+        const nodes = await store.listNodes(root, worldId);
+        const g = buildGraph(nodes, await store.listFragments(root, worldId));
+        const beliefs = await store.listBeliefs(root, worldId);
+        const findings = runRules({ nodes, graph: g, beliefs })
+          .filter((f) => f.nodeIds.includes(nodeId));
+        return { status: 200, json: {
+          proposition: suggestProposition(node),
+          questions: interrogate(node, nodes),
+          rulings: findings.map((f) => rulingAdvice(f, nodes)),
+        } };
       }
 
       if (parts[2] === 'nodes' && parts.length === 4) {

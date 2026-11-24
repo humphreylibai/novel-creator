@@ -71,6 +71,15 @@ export async function deleteNode(w: string, id: string): Promise<void> {
   throw new Error(`${b.error ?? res.statusText}${refs}`);
 }
 
+export interface Suggestions {
+  proposition: string;
+  questions: string[];
+  rulings: string[];
+}
+
+export const suggestions = (w: string, id: string) =>
+  j<Suggestions>(`/worlds/${encodeURIComponent(w)}/nodes/${encodeURIComponent(id)}/suggest`);
+
 export const citations = (w: string, id: string) =>
   j<Citations>(`/worlds/${encodeURIComponent(w)}/nodes/${encodeURIComponent(id)}/citations`);
 

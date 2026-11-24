@@ -7313,6 +7313,7 @@
     const refs = b.refs ? `\uFF08\u7247\u6BB5\uFF1A${b.refs.fragments.join("\u3001") || "\u65E0"}\uFF1B\u6761\u76EE\uFF1A${b.refs.nodes.map((n) => `${n.title}(${n.via})`).join("\u3001") || "\u65E0"}\uFF09` : "";
     throw new Error(`${b.error ?? res.statusText}${refs}`);
   }
+  var suggestions = (w, id) => j(`/worlds/${encodeURIComponent(w)}/nodes/${encodeURIComponent(id)}/suggest`);
   var citations = (w, id) => j(`/worlds/${encodeURIComponent(w)}/nodes/${encodeURIComponent(id)}/citations`);
   var listBeliefs = (w) => j(`/worlds/${encodeURIComponent(w)}/beliefs`);
   var saveBelief = (w, id, body) => j(`/worlds/${encodeURIComponent(w)}/beliefs/${encodeURIComponent(id)}`, {
@@ -8490,6 +8491,9 @@ theme:
     const [error, setError] = (0, import_react7.useState)(null);
     const [saving, setSaving] = (0, import_react7.useState)(false);
     const [refs, setRefs] = (0, import_react7.useState)(null);
+    const [advice, setAdvice] = (0, import_react7.useState)(null);
+    const [adviceError, setAdviceError] = (0, import_react7.useState)(null);
+    const [adviceLoading, setAdviceLoading] = (0, import_react7.useState)(false);
     (0, import_react7.useEffect)(() => {
       setKind(node["kind"] === "axiom" ? "axiom" : "entry");
       setTitle(String(node["title"] ?? ""));
@@ -8506,6 +8510,8 @@ theme:
       setConflictsWith(asList(node["conflictsWith"]));
       setSameAs(asList(node["sameAs"]));
       setError(null);
+      setAdvice(null);
+      setAdviceError(null);
     }, [node]);
     (0, import_react7.useEffect)(() => {
       let alive = true;
@@ -8556,6 +8562,17 @@ theme:
         setError(e instanceof Error ? e.message : String(e));
       } finally {
         setSaving(false);
+      }
+    };
+    const ask = async () => {
+      setAdviceLoading(true);
+      setAdviceError(null);
+      try {
+        setAdvice(await suggestions(world, id));
+      } catch (e) {
+        setAdviceError(e instanceof Error ? e.message : String(e));
+      } finally {
+        setAdviceLoading(false);
       }
     };
     const remove = async () => {
@@ -8769,6 +8786,47 @@ theme:
         color: "#b91c1c",
         whiteSpace: "pre-wrap"
       }, children: error }) : null,
+      persisted ? /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: {
+        marginTop: 4,
+        padding: 10,
+        borderRadius: 6,
+        border: "1px solid #e7e2da",
+        background: "#faf9f7",
+        fontSize: 12,
+        color: "#6b645c"
+      }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("strong", { style: { fontSize: 12, color: "#2c2926" }, children: "\u672C\u5730\u5EFA\u8BAE" }),
+          /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("span", { style: { fontSize: 10, color: "#a8a29a" }, children: "\u89C4\u5219\u751F\u6210\uFF0C\u4E0D\u8C03\u7528\u6A21\u578B" }),
+          /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("span", { style: { flex: 1 } }),
+          /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("button", { type: "button", onClick: () => void ask(), disabled: adviceLoading, style: {
+            padding: "3px 9px",
+            borderRadius: 4,
+            border: "1px solid #d6d0c7",
+            background: "#fff",
+            cursor: adviceLoading ? "wait" : "pointer",
+            fontSize: 11
+          }, children: adviceLoading ? "\u751F\u6210\u4E2D\u2026" : "\u5BA1\u95EE\u6211" })
+        ] }),
+        adviceError ? /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { role: "alert", style: { color: "#b91c1c", marginTop: 6 }, children: adviceError }) : null,
+        advice ? /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: { marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { children: [
+            "\u5F52\u7EB3\u547D\u9898\uFF1A",
+            advice.proposition,
+            advice.proposition && advice.proposition !== proposition ? /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("button", { type: "button", onClick: () => setProposition(advice.proposition), style: {
+              marginLeft: 6,
+              padding: "1px 6px",
+              borderRadius: 4,
+              border: "1px solid #d6d0c7",
+              background: "#fff",
+              cursor: "pointer",
+              fontSize: 11
+            }, children: "\u586B\u5165" }) : null
+          ] }),
+          advice.questions.length ? /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("ol", { style: { margin: "2px 0 0 16px", padding: 0 }, children: advice.questions.map((q) => /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("li", { children: q }, q)) }) : null,
+          advice.rulings.length ? /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("ul", { style: { margin: "2px 0 0 16px", padding: 0 }, children: advice.rulings.map((r, i) => /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("li", { children: r }, `${i}-${r}`)) }) : null
+        ] }) : null
+      ] }) : null,
       refs ? /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: { marginTop: 8, fontSize: 13, color: "#a8a29a", lineHeight: 1.7 }, children: [
         /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { children: [
           "\u88AB\u7247\u6BB5\u5F15\u7528\uFF1A",

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
-  citations, deleteNode, saveNode,
-  type Citations, type NodeRecord,
+  citations, deleteNode, saveNode, suggestions,
+  type Citations, type NodeRecord, type Suggestions,
 } from '../api.js';
 import {
   joinList, nodePayload, relationOptions, splitList,
@@ -72,6 +72,9 @@ export function NodeEditor({ world, node, nodes, onSaved, onDeleted }: {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [refs, setRefs] = useState<Citations | null>(null);
+  const [advice, setAdvice] = useState<Suggestions | null>(null);
+  const [adviceError, setAdviceError] = useState<string | null>(null);
+  const [adviceLoading, setAdviceLoading] = useState(false);
 
   useEffect(() => {
     setKind(node['kind'] === 'axiom' ? 'axiom' : 'entry');
@@ -89,6 +92,8 @@ export function NodeEditor({ world, node, nodes, onSaved, onDeleted }: {
     setConflictsWith(asList(node['conflictsWith']));
     setSameAs(asList(node['sameAs']));
     setError(null);
+    setAdvice(null);
+    setAdviceError(null);
   }, [node]);
 
   useEffect(() => {
@@ -128,6 +133,18 @@ export function NodeEditor({ world, node, nodes, onSaved, onDeleted }: {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const ask = async () => {
+    setAdviceLoading(true);
+    setAdviceError(null);
+    try {
+      setAdvice(await suggestions(world, id));
+    } catch (e) {
+      setAdviceError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setAdviceLoading(false);
     }
   };
 
@@ -254,6 +271,47 @@ export function NodeEditor({ world, node, nodes, onSaved, onDeleted }: {
           padding: '8px 10px', borderRadius: 6, background: '#fef2f2',
           border: '1px solid #fecaca', color: '#b91c1c', whiteSpace: 'pre-wrap',
         }}>{error}</div>
+      ) : null}
+
+      {persisted ? (
+        <div style={{
+          marginTop: 4, padding: 10, borderRadius: 6, border: '1px solid #e7e2da',
+          background: '#faf9f7', fontSize: 12, color: '#6b645c',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <strong style={{ fontSize: 12, color: '#2c2926' }}>本地建议</strong>
+            <span style={{ fontSize: 10, color: '#a8a29a' }}>规则生成，不调用模型</span>
+            <span style={{ flex: 1 }} />
+            <button type="button" onClick={() => void ask()} disabled={adviceLoading} style={{
+              padding: '3px 9px', borderRadius: 4, border: '1px solid #d6d0c7',
+              background: '#fff', cursor: adviceLoading ? 'wait' : 'pointer', fontSize: 11,
+            }}>{adviceLoading ? '生成中…' : '审问我'}</button>
+          </div>
+          {adviceError ? <div role="alert" style={{ color: '#b91c1c', marginTop: 6 }}>{adviceError}</div> : null}
+          {advice ? (
+            <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div>
+                归纳命题：{advice.proposition}
+                {advice.proposition && advice.proposition !== proposition ? (
+                  <button type="button" onClick={() => setProposition(advice.proposition)} style={{
+                    marginLeft: 6, padding: '1px 6px', borderRadius: 4, border: '1px solid #d6d0c7',
+                    background: '#fff', cursor: 'pointer', fontSize: 11,
+                  }}>填入</button>
+                ) : null}
+              </div>
+              {advice.questions.length ? (
+                <ol style={{ margin: '2px 0 0 16px', padding: 0 }}>
+                  {advice.questions.map((q) => <li key={q}>{q}</li>)}
+                </ol>
+              ) : null}
+              {advice.rulings.length ? (
+                <ul style={{ margin: '2px 0 0 16px', padding: 0 }}>
+                  {advice.rulings.map((r, i) => <li key={`${i}-${r}`}>{r}</li>)}
+                </ul>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
       ) : null}
 
       {refs ? (
