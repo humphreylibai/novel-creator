@@ -21,6 +21,8 @@ beforeAll(async () => {
   await h({ method: 'POST', path: '/worlds', query: {}, body: { id: '记忆之世', config: CONFIG } });
   await h({ method: 'PUT', path: '/worlds/记忆之世/nodes/E-1', query: {},
     body: { id: 'E-1', kind: 'entry', title: '欠名录', strength: 'soft', body: '袖口' } });
+  await h({ method: 'PUT', path: '/worlds/记忆之世/nodes/A-1', query: {},
+    body: { id: 'A-1', kind: 'entry', title: '外典', strength: 'soft', requires: ['E-1'] } });
   await h({ method: 'PUT', path: '/worlds/记忆之世/fragments/第03章-02', query: {},
     body: { chapter: 3, scene: 2, text: '袖口的[[欠名录]]' } });
 });
@@ -38,8 +40,6 @@ describe('引用与删除保护', () => {
   });
 
   it('节点的入边出现在 citations.nodes 中', async () => {
-    await h({ method: 'PUT', path: '/worlds/记忆之世/nodes/A-1', query: {},
-      body: { id: 'A-1', kind: 'entry', title: '外典', strength: 'soft', requires: ['E-1'] } });
     const r = await h({ method: 'GET', path: '/worlds/记忆之世/nodes/E-1/citations', query: {}, body: null });
     expect((r.json as any).nodes).toContainEqual({ id: 'A-1', title: '外典', via: 'requires' });
   });
@@ -48,6 +48,24 @@ describe('引用与删除保护', () => {
     const r = await h({ method: 'DELETE', path: '/worlds/记忆之世/nodes/E-1', query: {}, body: null });
     expect(r.status).toBe(409);
     expect((r.json as any).refs.nodes).toContainEqual({ id: 'A-1', title: '外典', via: 'requires' });
+  });
+
+  it('删除不存在的节点返回 404', async () => {
+    const r = await h({ method: 'DELETE', path: '/worlds/记忆之世/nodes/NOPE', query: {}, body: null });
+    expect(r.status).toBe(404);
+    expect((r.json as any).error).toContain('节点不存在');
+  });
+
+  it('未被引用的节点可以删除，之后读取 404', async () => {
+    const w = await h({ method: 'PUT', path: '/worlds/记忆之世/nodes/E-3', query: {},
+      body: { id: 'E-3', kind: 'entry', title: '孤本', strength: 'soft' } });
+    expect(w.status).toBe(200);
+
+    const d = await h({ method: 'DELETE', path: '/worlds/记忆之世/nodes/E-3', query: {}, body: null });
+    expect(d.status).toBe(204);
+
+    const g = await h({ method: 'GET', path: '/worlds/记忆之世/nodes/E-3', query: {}, body: null });
+    expect(g.status).toBe(404);
   });
 });
 
