@@ -1,6 +1,6 @@
 # 世界观 P0 收尾 Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** 把世界观从「可跑通」补到 spec §4/§8 承诺的完整 P0：编辑公理与关系、删除保护、卡片墙、片段库、建世界、不可跳过的开局引导。
 
@@ -40,7 +40,7 @@
 - `NodeDraft`: `{ kind: 'axiom'|'entry'; title: string; body: string; strength: string; from: string; to: string; aliases: string; cost: string; proposition: string }`
 - Consumes: `saveNode` from `src/ui/api.ts`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 import { describe, expect, it } from 'vitest';
@@ -80,12 +80,12 @@ describe('nodeFields', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npm test -- tests/ui/node-fields.test.ts`
 Expected: FAIL — module `src/ui/nodeFields.js` not found.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```ts
 import type { NodeRecord } from './api.js';
@@ -132,12 +132,12 @@ export function nodePayload(base: NodeRecord, draft: NodeDraft): NodeRecord {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npm test -- tests/ui/node-fields.test.ts`
 Expected: PASS (4 tests).
 
-- [ ] **Step 5: Wire the editor**
+- [x] **Step 5: Wire the editor**
 
 In `NodeEditor.tsx`:
 - initialize `kind`, `strength`, `from`, `to`, `aliases`, `cost`, `proposition` from `node`.
@@ -166,7 +166,7 @@ In `App.tsx`:
 - `handleDeleted()` sets `setSelected(null)`, `void reloadNodes()`, `void reloadStats()`.
 - pass `nodes={nodes}` and `onDeleted={handleDeleted}`.
 
-- [ ] **Step 6: Verify and commit**
+- [x] **Step 6: Verify and commit**
 
 Run: `npm run verify`
 Expected: all tests pass; `public/app.js` rebuilt.
@@ -189,7 +189,7 @@ git commit -m "feat: 补全世界观节点编辑与删除"
 - `RelationField = 'derives' | 'manifests' | 'requires' | 'conflictsWith' | 'sameAs'`
 - Consumes: `nodePayload` from Task 1
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 import { relationOptions } from '../../src/ui/nodeFields.js';
@@ -207,12 +207,12 @@ it('derives 只列公理，manifests 只列条目，排除自己', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npm test -- tests/ui/node-fields.test.ts`
 Expected: FAIL — `relationOptions` is not exported.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 ```ts
 export type RelationField = 'derives' | 'manifests' | 'requires' | 'conflictsWith' | 'sameAs';
@@ -228,12 +228,12 @@ export function relationOptions(nodes: NodeRecord[], field: RelationField, selfI
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npm test -- tests/ui/node-fields.test.ts`
 Expected: PASS (6 tests).
 
-- [ ] **Step 5: Add controls to NodeEditor**
+- [x] **Step 5: Add controls to NodeEditor**
 
 - local state for `derives`, `manifests`, `requires`, `conflictsWith`, `sameAs` (arrays).
 - render native `<select multiple size={5}>` for each; `derives` only when `kind === 'entry'`; `manifests` only when `kind === 'axiom'`.
@@ -242,7 +242,7 @@ Expected: PASS (6 tests).
 - save payload: `{ ...nodePayload(node, draft), derives, manifests, requires, conflicts_with: conflictsWith, same_as: sameAs }`.
 - Ensure axiom -> manifests visible; entry -> derives visible.
 
-- [ ] **Step 6: Verify and commit**
+- [x] **Step 6: Verify and commit**
 
 Run: `npm run verify`
 ```bash
@@ -264,7 +264,7 @@ git commit -m "feat: 世界观条目支持关系选择器"
 - Produces: `badgesFor(findings: Finding[], nodeId: string): string[]`
 - Consumes: `findings(world)` from `src/ui/api.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 import { describe, expect, it } from 'vitest';
@@ -282,12 +282,12 @@ it('按节点汇总角标，去重且保持固定顺序', () => {
 });
 ```
 
-- [ ] **Step 2: Run to fail**
+- [x] **Step 2: Run to fail**
 
 Run: `npm test -- tests/ui/card-badges.test.ts`
 Expected: FAIL — module not found.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 ```ts
 import type { Finding } from '../engine/types.js';
@@ -311,12 +311,12 @@ export function badgesFor(findings: Finding[], nodeId: string): string[] {
 }
 ```
 
-- [ ] **Step 4: Run to pass**
+- [x] **Step 4: Run to pass**
 
 Run: `npm test -- tests/ui/card-badges.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: Build CardWall**
+- [x] **Step 5: Build CardWall**
 
 `CardWall.tsx`:
 - fetch `findings(worldId)` on mount/world change.
@@ -330,7 +330,7 @@ Expected: PASS.
 - render `CardWall` for `view === 'cards'`; pass nodes + findings? CardWall can fetch nodes itself to avoid App prop; use `listNodes` and `findings`.
 - Use `onOpen={(id) => { setView('nodes'); void openNodeById(id); }}`.
 
-- [ ] **Step 6: Verify and commit**
+- [x] **Step 6: Verify and commit**
 
 Run: `npm run verify`
 ```bash
@@ -356,7 +356,7 @@ git commit -m "feat: 世界观卡片墙"
 - Produces: `saveFragment(w, id, body): Promise<void>`
 - `FragmentRecord`: `{ id: string; chapter: number|null; scene: number|null; text: string; file: string }`
 
-- [ ] **Step 1: Write failing unit + handler tests**
+- [x] **Step 1: Write failing unit + handler tests**
 
 `tests/ui/fragment-fields.test.ts`:
 ```ts
@@ -376,12 +376,12 @@ it('空章节/场次转 null，正文保持原样', () => {
 - PUT invalid id `../x` -> 400.
 Use `createHandlers` and `mkdtemp` like existing handler tests.
 
-- [ ] **Step 2: Run to fail**
+- [x] **Step 2: Run to fail**
 
 Run: `npm test -- tests/ui/fragment-fields.test.ts tests/host/handlers-fragments.test.ts`
 Expected: UI module missing; handler test should pass? If it passes, that's evidence the route exists; keep it as regression.
 
-- [ ] **Step 3: Implement API + helper**
+- [x] **Step 3: Implement API + helper**
 
 `api.ts`:
 ```ts
@@ -405,12 +405,12 @@ export const fragmentPayload = (raw: { chapter: string; scene: string; text: str
 ```
 (Use `Number.isFinite` fallback to null.)
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 Run: `npm test -- tests/ui/fragment-fields.test.ts tests/host/handlers-fragments.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: Build Fragments view**
+- [x] **Step 5: Build Fragments view**
 
 - two-column: left list of fragments (`第{chapter}章 · 场景{scene}` + id), right editor.
 - new button creates local draft id `fragment-${Date.now().toString(36)}`.
@@ -423,7 +423,7 @@ Expected: PASS.
 - render `<Fragments worldId={world} onChanged={() => { if (selected) void selectNode({ id: selected['id'] }); }} />`.
 - Ensure `selectNode` accepts `NodeRecord`; it does.
 
-- [ ] **Step 6: Verify and commit**
+- [x] **Step 6: Verify and commit**
 
 Run: `npm run verify`
 ```bash
@@ -447,7 +447,7 @@ git commit -m "feat: 世界观片段库界面"
 - `WorldDraftInput`: `{ id: string; title: string; wound: string; motif: string; epoch: string; start: string; end: string }`
 - Produces: `createWorld(id: string, config: string): Promise<void>`
 
-- [ ] **Step 1: Write failing test**
+- [x] **Step 1: Write failing test**
 
 ```ts
 import { expect, it } from 'vitest';
@@ -466,12 +466,12 @@ it('生成可被 parseWorldConfig 读回的 world.yaml', () => {
 });
 ```
 
-- [ ] **Step 2: Run to fail**
+- [x] **Step 2: Run to fail**
 
 Run: `npm test -- tests/ui/world-draft.test.ts`
 Expected: FAIL — module not found.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 ```ts
 export interface WorldDraftInput {
@@ -503,12 +503,12 @@ export const createWorld = (id: string, config: string) =>
   j<{ ok: true }>('/worlds', { method: 'POST', body: JSON.stringify({ id, config }) });
 ```
 
-- [ ] **Step 4: Run to pass**
+- [x] **Step 4: Run to pass**
 
 Run: `npm test -- tests/ui/world-draft.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: Build NewWorld + App wiring**
+- [x] **Step 5: Build NewWorld + App wiring**
 
 `NewWorld.tsx`:
 - controlled inputs; submit disabled unless id/wound non-empty.
@@ -521,7 +521,7 @@ Expected: PASS.
 - empty state gets the same button, not just text.
 - keep world select working.
 
-- [ ] **Step 6: Verify and commit**
+- [x] **Step 6: Verify and commit**
 
 Run: `npm run verify`
 ```bash
@@ -542,7 +542,7 @@ git commit -m "feat: 新建世界界面"
 - Produces: `onboardingActive(stat: Stats | null, hasSelection: boolean): boolean`
 - Produces: `canCreateEntry(stat: Stats | null): boolean`
 
-- [ ] **Step 1: Write failing test**
+- [x] **Step 1: Write failing test**
 
 ```ts
 import { expect, it } from 'vitest';
@@ -557,12 +557,12 @@ it('公理不足 3 条且未选中时显示引导，且禁止新建条目', () =
 });
 ```
 
-- [ ] **Step 2: Run to fail**
+- [x] **Step 2: Run to fail**
 
 Run: `npm test -- tests/ui/onboarding.test.ts`
 Expected: FAIL — module not found.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 ```ts
 import type { Stats } from './api.js';
@@ -574,19 +574,19 @@ export const canCreateEntry = (stat: Stats | null): boolean =>
   !stat || stat.axioms >= 3;
 ```
 
-- [ ] **Step 4: Run to pass**
+- [x] **Step 4: Run to pass**
 
 Run: `npm test -- tests/ui/onboarding.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: Wire gate**
+- [x] **Step 5: Wire gate**
 
 - replace the inline onboarding condition with `onboardingActive(stat, selected !== null)`.
 - disable both「＋新建条目」「＋新建公理」when `!canCreateEntry(stat)`; keep onboarding's own「加一条公理」available.
 - ensure selecting an existing node while axioms < 3 still allows editing (not a bypass of creation).
 - after third axiom, `handleOnboardingDone` reloads stats/nodes; buttons re-enable.
 
-- [ ] **Step 6: Verify and commit**
+- [x] **Step 6: Verify and commit**
 
 Run: `npm run verify`
 ```bash
@@ -602,7 +602,7 @@ git commit -m "feat: 世界观开局引导禁止绕过"
 - Modify: `docs/superpowers/plans/acceptance-checklist.md`
 - Modify: `.superpowers/sdd/2026-11-23-worldbuilding-p0/progress.md` (git-ignored)
 
-- [ ] **Step 1: Manual UI verification**
+- [x] **Step 1: Manual UI verification**
 
 Use the live service (8791) or a temp data root:
 - 新建公理，填代价 -> 保存成功；空代价 -> 422 文案。
@@ -613,19 +613,19 @@ Use the live service (8791) or a temp data root:
 - 新建世界 -> 下拉框出现并切换；< 3 公理时不能新建条目。
 - 时间轴区间随世界历法变化。
 
-- [ ] **Step 2: Update the checklist**
+- [x] **Step 2: Update the checklist**
 
 - 删除“没有删除按钮 / 没有片段库 / 没有建世界界面”的已知缺口。
 - 步骤 4/5 改成界面操作，不再要求手写 front matter。
 - 保留 R9、R6、无鉴权、R1 显式登记、验收套件规模等仍未解决项。
 
-- [ ] **Step 3: Full verification**
+- [x] **Step 3: Full verification**
 
 Run: `npm run verify`
 Expected: all tests pass; `public/app.js` and `lib/` build clean.
 Run: `git status --short` — only intended files / test data.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add docs/superpowers/plans/acceptance-checklist.md
