@@ -341,7 +341,11 @@ export function App() {
                 <select
                   value={world}
                   disabled={worlds.length === 0}
-                  onChange={(e) => { setStat(null); setSelected(null); setView('nodes'); setWorld(e.target.value); }}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    if (next === world) return;
+                    setStat(null); setSelected(null); setView('nodes'); setWorld(next);
+                  }}
                   style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid #e7e2da', background: '#fff' }}
                 >
                   {worlds.length === 0

@@ -9434,10 +9434,12 @@ theme:
                 value: world,
                 disabled: worlds.length === 0,
                 onChange: (e) => {
+                  const next = e.target.value;
+                  if (next === world) return;
                   setStat(null);
                   setSelected(null);
                   setView("nodes");
-                  setWorld(e.target.value);
+                  setWorld(next);
                 },
                 style: { padding: "5px 8px", borderRadius: 6, border: "1px solid #e7e2da", background: "#fff" },
                 children: worlds.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("option", { value: "", children: "\u8FD8\u6CA1\u6709\u4E16\u754C" }) : worlds.map((w) => /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("option", { value: w, children: w }, w))
