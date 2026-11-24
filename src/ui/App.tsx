@@ -8,6 +8,7 @@ import { CardWall } from './views/CardWall.js';
 import { Fragments } from './views/Fragments.js';
 import { NewWorld } from './views/NewWorld.js';
 import { NodeEditor } from './views/NodeEditor.js';
+import { canCreateEntry, onboardingActive } from './onboarding.js';
 import { Onboarding } from './views/Onboarding.js';
 import { StagePlaceholder } from './views/StagePlaceholder.js';
 import { Timeline } from './views/Timeline.js';
@@ -233,6 +234,7 @@ export function App() {
   };
 
   const stageMeta = STAGES.find((s) => s.id === stage) ?? STAGES[0]!;
+  const creationLocked = !canCreateEntry(stat);
 
   return (
     <div style={{
@@ -358,15 +360,15 @@ export function App() {
                 </div>
                 {view === 'nodes' ? (
                   <>
-                    <button type="button" onClick={() => newNode('entry')} disabled={!world} style={{
+                    <button type="button" onClick={() => newNode('entry')} disabled={!world || creationLocked} style={{
                       padding: '5px 12px', borderRadius: 6, border: '1px solid #e7e2da',
-                      background: '#fff', color: world ? '#2c2926' : '#a8a29a',
-                      cursor: world ? 'pointer' : 'not-allowed', fontSize: 13,
+                      background: '#fff', color: world && !creationLocked ? '#2c2926' : '#a8a29a',
+                      cursor: world && !creationLocked ? 'pointer' : 'not-allowed', fontSize: 13,
                     }}>＋ 新建条目</button>
-                    <button type="button" onClick={() => newNode('axiom')} disabled={!world} style={{
+                    <button type="button" onClick={() => newNode('axiom')} disabled={!world || creationLocked} style={{
                       padding: '5px 12px', borderRadius: 6, border: '1px solid #e7e2da',
-                      background: '#fff', color: world ? '#2c2926' : '#a8a29a',
-                      cursor: world ? 'pointer' : 'not-allowed', fontSize: 13,
+                      background: '#fff', color: world && !creationLocked ? '#2c2926' : '#a8a29a',
+                      cursor: world && !creationLocked ? 'pointer' : 'not-allowed', fontSize: 13,
                     }}>＋ 新建公理</button>
                   </>
                 ) : null}
@@ -412,7 +414,7 @@ export function App() {
                 world
                   ? <Timeline worldId={world} onOpen={(id) => void openNodeById(id)} />
                   : <div style={{ padding: 24, color: '#a8a29a' }}>加载中…</div>
-              ) : world && stat && stat.axioms < 3 && !selected ? (
+              ) : onboardingActive(stat, selected !== null) && stat ? (
                 <Onboarding worldId={world} stats={stat} onDone={handleOnboardingDone} />
               ) : (
                 <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>

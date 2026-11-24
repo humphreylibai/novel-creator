@@ -8248,6 +8248,10 @@ theme:
     ] });
   }
 
+  // src/ui/onboarding.ts
+  var onboardingActive = (stat, hasSelection) => !!stat && stat.axioms < 3 && !hasSelection;
+  var canCreateEntry = (stat) => !stat || stat.axioms >= 3;
+
   // src/ui/views/Onboarding.tsx
   var import_react6 = __toESM(require_react(), 1);
   var import_jsx_runtime6 = __toESM(require_jsx_runtime(), 1);
@@ -8697,6 +8701,7 @@ theme:
       void reloadStats();
     };
     const stageMeta = STAGES.find((s) => s.id === stage) ?? STAGES[0];
+    const creationLocked = !canCreateEntry(stat);
     return /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { style: {
       position: "absolute",
       inset: 0,
@@ -8860,22 +8865,22 @@ theme:
               );
             }) }),
             view === "nodes" ? /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(import_jsx_runtime9.Fragment, { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("button", { type: "button", onClick: () => newNode("entry"), disabled: !world, style: {
+              /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("button", { type: "button", onClick: () => newNode("entry"), disabled: !world || creationLocked, style: {
                 padding: "5px 12px",
                 borderRadius: 6,
                 border: "1px solid #e7e2da",
                 background: "#fff",
-                color: world ? "#2c2926" : "#a8a29a",
-                cursor: world ? "pointer" : "not-allowed",
+                color: world && !creationLocked ? "#2c2926" : "#a8a29a",
+                cursor: world && !creationLocked ? "pointer" : "not-allowed",
                 fontSize: 13
               }, children: "\uFF0B \u65B0\u5EFA\u6761\u76EE" }),
-              /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("button", { type: "button", onClick: () => newNode("axiom"), disabled: !world, style: {
+              /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("button", { type: "button", onClick: () => newNode("axiom"), disabled: !world || creationLocked, style: {
                 padding: "5px 12px",
                 borderRadius: 6,
                 border: "1px solid #e7e2da",
                 background: "#fff",
-                color: world ? "#2c2926" : "#a8a29a",
-                cursor: world ? "pointer" : "not-allowed",
+                color: world && !creationLocked ? "#2c2926" : "#a8a29a",
+                cursor: world && !creationLocked ? "pointer" : "not-allowed",
                 fontSize: 13
               }, children: "\uFF0B \u65B0\u5EFA\u516C\u7406" })
             ] }) : null,
@@ -8905,7 +8910,7 @@ theme:
                 if (selected) void selectNode({ id: selected["id"] });
               }
             }
-          ) : /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { padding: 24, color: "#a8a29a" }, children: "\u52A0\u8F7D\u4E2D\u2026" }) : view === "findings" ? world ? /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(Findings, { worldId: world, onOpen: (id) => void openNodeById(id) }) : /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { padding: 24, color: "#a8a29a" }, children: "\u52A0\u8F7D\u4E2D\u2026" }) : view === "timeline" ? world ? /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(Timeline, { worldId: world, onOpen: (id) => void openNodeById(id) }) : /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { padding: 24, color: "#a8a29a" }, children: "\u52A0\u8F7D\u4E2D\u2026" }) : world && stat && stat.axioms < 3 && !selected ? /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(Onboarding, { worldId: world, stats: stat, onDone: handleOnboardingDone }) : /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { style: { display: "flex", flex: 1, minHeight: 0 }, children: [
+          ) : /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { padding: 24, color: "#a8a29a" }, children: "\u52A0\u8F7D\u4E2D\u2026" }) : view === "findings" ? world ? /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(Findings, { worldId: world, onOpen: (id) => void openNodeById(id) }) : /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { padding: 24, color: "#a8a29a" }, children: "\u52A0\u8F7D\u4E2D\u2026" }) : view === "timeline" ? world ? /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(Timeline, { worldId: world, onOpen: (id) => void openNodeById(id) }) : /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { padding: 24, color: "#a8a29a" }, children: "\u52A0\u8F7D\u4E2D\u2026" }) : onboardingActive(stat, selected !== null) && stat ? /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(Onboarding, { worldId: world, stats: stat, onDone: handleOnboardingDone }) : /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { style: { display: "flex", flex: 1, minHeight: 0 }, children: [
             /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { style: {
               width: 220,
               flexShrink: 0,
