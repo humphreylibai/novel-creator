@@ -7337,23 +7337,49 @@
   var findings = (w) => j(`/worlds/${encodeURIComponent(w)}/findings`);
   var worldConfig = (w) => j(`/worlds/${encodeURIComponent(w)}/config`);
   var atYear = (w, year) => j(`/worlds/${encodeURIComponent(w)}/at?year=${encodeURIComponent(String(year))}`);
+  var listAudits = (w) => j(`/worlds/${encodeURIComponent(w)}/audits`);
+  var runAudit = (w) => j(`/worlds/${encodeURIComponent(w)}/audit`, { method: "POST", body: "{}" });
+  var setAuditStatus = (w, id, status) => j(`/worlds/${encodeURIComponent(w)}/audits/${encodeURIComponent(id)}`, {
+    method: "POST",
+    body: JSON.stringify({ status })
+  });
 
   // src/ui/views/Findings.tsx
   var import_react = __toESM(require_react(), 1);
   var import_jsx_runtime = __toESM(require_jsx_runtime(), 1);
   var ICON = { error: "\u{1F534}", warn: "\u{1F7E1}", info: "\u26AA" };
   var message = (e) => e instanceof Error ? e.message : String(e);
+  var RELATION_LABEL = {
+    contradiction: "\u77DB\u76FE",
+    tension: "\u5F20\u529B"
+  };
+  var short = (s, n = 120) => s.length > n ? s.slice(0, n) + "\u2026" : s;
   function Findings({ worldId, onOpen }) {
     const [list2, setList] = (0, import_react.useState)([]);
+    const [nodes, setNodes] = (0, import_react.useState)([]);
+    const [report, setReport] = (0, import_react.useState)(null);
     const [error, setError] = (0, import_react.useState)(null);
+    const [auditError, setAuditError] = (0, import_react.useState)(null);
     const [loading, setLoading] = (0, import_react.useState)(true);
+    const [auditing, setAuditing] = (0, import_react.useState)(false);
+    const [busyId, setBusyId] = (0, import_react.useState)(null);
+    const loadFindings = (0, import_react.useCallback)(async () => {
+      const r = await findings(worldId);
+      setList(r);
+    }, [worldId]);
     (0, import_react.useEffect)(() => {
       let alive = true;
       setList([]);
+      setNodes([]);
+      setReport(null);
       setError(null);
+      setAuditError(null);
       setLoading(true);
-      findings(worldId).then((r) => {
-        if (alive) setList(r);
+      Promise.all([findings(worldId), listNodes(worldId), listAudits(worldId)]).then(([f, n, a]) => {
+        if (!alive) return;
+        setList(f);
+        setNodes(n);
+        setReport(a);
       }).catch((e) => {
         if (alive) setError(message(e));
       }).finally(() => {
@@ -7363,7 +7389,35 @@
         alive = false;
       };
     }, [worldId]);
-    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { padding: 24, maxWidth: 860 }, children: [
+    const run = async () => {
+      setAuditing(true);
+      setAuditError(null);
+      try {
+        const next = await runAudit(worldId);
+        setReport(next);
+        await loadFindings();
+      } catch (e) {
+        setAuditError(message(e));
+      } finally {
+        setAuditing(false);
+      }
+    };
+    const decide = async (f, status) => {
+      setBusyId(f.id);
+      setAuditError(null);
+      try {
+        const saved = await setAuditStatus(worldId, f.id, status);
+        setReport((prev) => prev ? { ...prev, findings: prev.findings.map((x) => x.id === f.id ? saved : x) } : prev);
+        if (status === "accepted") await loadFindings();
+      } catch (e) {
+        setAuditError(message(e));
+      } finally {
+        setBusyId(null);
+      }
+    };
+    const titleOf = (id) => String(nodes.find((n) => String(n["id"] ?? "") === id)?.["title"] ?? id);
+    const openItems = report?.findings.filter((f) => f.status === "open") ?? [];
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { padding: 24, maxWidth: 900 }, children: [
       /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("h2", { style: { marginTop: 0, fontSize: 17 }, children: [
         "\u8BCA\u65AD\u6E05\u5355 \xB7 ",
         list2.length,
@@ -7377,6 +7431,119 @@
         color: "#b91c1c",
         fontSize: 13
       }, children: error }) : null,
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { style: {
+        margin: "4px 0 20px",
+        padding: "12px 14px",
+        borderRadius: 8,
+        border: "1px solid #e7e2da",
+        background: "#fffdf9"
+      }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 14, fontWeight: 600 }, children: "\u8BED\u4E49\u5BA1\u8BA1 \xB7 \u6A21\u578B\u53D1\u73B0" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 12, color: "#8a847b", marginTop: 2 }, children: "\u8BA9\u6A21\u578B\u6BD4\u8F83\u8BBE\u5B9A\u4E4B\u95F4\u7684\u771F\u5B9E\u77DB\u76FE\uFF1B\u53EA\u751F\u6210\u5F85\u786E\u8BA4\u9879\uFF0C\u4E0D\u4F1A\u81EA\u52A8\u6539\u4EFB\u4F55\u8BBE\u5B9A\u3002\u8FD0\u884C\u65F6\u4F1A\u628A\u8FD9\u6279\u8BBE\u5B9A\u6587\u672C\u53D1\u9001\u5230\u4F60\u914D\u7F6E\u7684\u6A21\u578B provider\u3002" })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+            "button",
+            {
+              type: "button",
+              onClick: () => void run(),
+              disabled: auditing,
+              style: {
+                flexShrink: 0,
+                padding: "5px 12px",
+                borderRadius: 6,
+                border: "1px solid #b45309",
+                background: auditing ? "#f5e6d3" : "#fff",
+                color: "#b45309",
+                fontSize: 13,
+                cursor: auditing ? "wait" : "pointer"
+              },
+              children: auditing ? "\u5BA1\u8BA1\u4E2D\u2026" : report ? "\u91CD\u65B0\u5BA1\u8BA1" : "\u8FD0\u884C\u8BED\u4E49\u5BA1\u8BA1"
+            }
+          )
+        ] }),
+        auditError ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { role: "alert", style: {
+          marginTop: 10,
+          padding: "8px 10px",
+          borderRadius: 6,
+          background: "#fef2f2",
+          border: "1px solid #fecaca",
+          color: "#b91c1c",
+          fontSize: 12
+        }, children: auditError }) : null,
+        report ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { marginTop: 10 }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { fontSize: 11, color: "#a8a29a", marginBottom: 6 }, children: [
+            report.model,
+            " \xB7 ",
+            new Date(report.createdAt).toLocaleString("zh-CN"),
+            " \xB7 \u626B\u63CF ",
+            report.nodeCount,
+            " \u4E2A\u8282\u70B9"
+          ] }),
+          report.findings.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 13, color: "#6b7280" }, children: "\u8FD9\u6B21\u6CA1\u6709\u53D1\u73B0\u65B0\u7684\u8BED\u4E49\u77DB\u76FE\u3002" }) : report.findings.map((f) => {
+            const done = f.status !== "open";
+            return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
+              borderTop: "1px solid #f0ebe3",
+              padding: "9px 0",
+              opacity: done ? 0.66 : 1
+            }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { fontSize: 13 }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { style: { color: f.relation === "contradiction" ? "#b91c1c" : "#b45309" }, children: [
+                  f.relation === "contradiction" ? "\u{1F534}" : "\u{1F7E1}",
+                  " ",
+                  RELATION_LABEL[f.relation]
+                ] }),
+                " ",
+                "\u7F6E\u4FE1\u5EA6 ",
+                f.confidence.toFixed(2),
+                f.alreadyRegistered ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { marginLeft: 8, fontSize: 11, color: "#8a847b" }, children: "\u5DF2\u767B\u8BB0" }) : null,
+                f.status === "accepted" ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { marginLeft: 8, fontSize: 11, color: "#0a7" }, children: "\u5DF2\u786E\u8BA4\u5E76\u767B\u8BB0" }) : null,
+                f.status === "dismissed" ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { marginLeft: 8, fontSize: 11, color: "#8a847b" }, children: "\u5DF2\u9A73\u56DE" }) : null
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { marginTop: 4, fontSize: 13 }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { type: "button", onClick: () => onOpen(f.a), style: linkBtn, children: titleOf(f.a) }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { color: "#8a847b", margin: "0 5px" }, children: "\xD7" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { type: "button", onClick: () => onOpen(f.b), style: linkBtn, children: titleOf(f.b) })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { marginTop: 4, fontSize: 12, color: "#4b5563" }, children: f.reason }),
+              f.evidence.length ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("ul", { style: { margin: "4px 0 0", paddingLeft: 18, fontSize: 12, color: "#8a847b" }, children: f.evidence.map((e, i) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("li", { children: short(e) }, `${f.id}-e${i}`)) }) : null,
+              !done && !f.alreadyRegistered ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { marginTop: 6, display: "flex", gap: 8 }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                  "button",
+                  {
+                    type: "button",
+                    disabled: busyId === f.id,
+                    onClick: () => void decide(f, "accepted"),
+                    style: acceptBtn,
+                    children: "\u786E\u8BA4\u4E3A\u51B2\u7A81"
+                  }
+                ),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                  "button",
+                  {
+                    type: "button",
+                    disabled: busyId === f.id,
+                    onClick: () => void decide(f, "dismissed"),
+                    style: dismissBtn,
+                    children: "\u9A73\u56DE"
+                  }
+                )
+              ] }) : null,
+              !done && f.alreadyRegistered ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { marginTop: 6, fontSize: 11, color: "#8a847b" }, children: "\u8FD9\u4E24\u6761\u5DF2\u7ECF\u767B\u8BB0\u5728 conflicts_with \u91CC\uFF0C\u4E0D\u9700\u8981\u91CD\u590D\u786E\u8BA4\u3002" }) : null
+            ] }, f.id);
+          }),
+          openItems.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { marginTop: 8, fontSize: 11, color: "#a8a29a" }, children: [
+            "\u8FD8\u6709 ",
+            openItems.length,
+            " \u6761\u5F85\u786E\u8BA4\uFF1B\u786E\u8BA4\u540E\u4F1A\u5199\u5165 `conflicts_with`\uFF0C\u5E76\u7531 R1 \u518D\u6821\u9A8C\u3002"
+          ] }) : null
+        ] }) : !auditing ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { marginTop: 10, fontSize: 12, color: "#a8a29a" }, children: "\u8FD8\u6CA1\u6709\u5BA1\u8BA1\u62A5\u544A\u3002\u70B9\u300C\u8FD0\u884C\u8BED\u4E49\u5BA1\u8BA1\u300D\u8BA9\u6A21\u578B\u901A\u8BFB\u5F53\u524D\u4E16\u754C\u3002" }) : null
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("h3", { style: { fontSize: 14, margin: "0 0 6px" }, children: [
+        "\u89C4\u5219\u8BCA\u65AD \xB7 ",
+        list2.length
+      ] }),
       !error && !loading && list2.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { style: { color: "#a8a29a" }, children: "\u6CA1\u6709\u53D1\u73B0\u95EE\u9898\u3002" }) : null,
       list2.map((f, i) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { borderBottom: "1px solid #f0f0f0", padding: "10px 0" }, children: [
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { fontSize: 13 }, children: [
@@ -7388,34 +7555,43 @@
         ] }),
         f.hint ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { color: "#888", fontSize: 13, marginTop: 4 }, children: f.hint }) : null,
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { marginTop: 6 }, children: [
-          f.nodeIds.map((id) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-            "button",
-            {
-              type: "button",
-              onClick: () => onOpen(id),
-              style: {
-                marginRight: 8,
-                padding: "2px 8px",
-                fontSize: 12,
-                borderRadius: 4,
-                border: "1px solid #e7e2da",
-                background: "#fff",
-                color: "#2c2926",
-                cursor: "pointer"
-              },
-              children: id
-            },
-            id
-          )),
-          (f.actions ?? []).map((a) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { style: { fontSize: 12, color: "#0a7", marginRight: 12 }, children: [
-            "[",
-            a,
-            "]"
-          ] }, a))
+          f.nodeIds.map((id) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { type: "button", onClick: () => onOpen(id), style: linkBtn, children: id }, id)),
+          (f.actions ?? []).length ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { marginTop: 4, fontSize: 12, color: "#8a847b" }, children: [
+            "\u88C1\u51B3\u5EFA\u8BAE\uFF08\u4E0D\u4F1A\u81EA\u52A8\u6267\u884C\uFF09\uFF1A",
+            (f.actions ?? []).join(" \xB7 ")
+          ] }) : null
         ] })
       ] }, `${f.rule}-${i}`))
     ] });
   }
+  var linkBtn = {
+    marginRight: 8,
+    padding: "2px 8px",
+    fontSize: 12,
+    borderRadius: 4,
+    border: "1px solid #e7e2da",
+    background: "#fff",
+    color: "#2c2926",
+    cursor: "pointer"
+  };
+  var acceptBtn = {
+    padding: "3px 9px",
+    fontSize: 12,
+    borderRadius: 5,
+    border: "1px solid #0a7",
+    background: "#f0fdf4",
+    color: "#0a7",
+    cursor: "pointer"
+  };
+  var dismissBtn = {
+    padding: "3px 9px",
+    fontSize: 12,
+    borderRadius: 5,
+    border: "1px solid #d6d3d1",
+    background: "#fff",
+    color: "#6b7280",
+    cursor: "pointer"
+  };
 
   // src/ui/views/CardWall.tsx
   var import_react2 = __toESM(require_react(), 1);

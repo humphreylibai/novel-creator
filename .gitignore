@@ -6,6 +6,9 @@ build/
 # 派生索引：可随时重建，不进版本库
 data/worlds/*/index.json
 
+# 语义审计结果：模型生成、可重跑，不把模型输出当源码
+/data/worlds/*/audits/
+
 # 渲染缓存：地图是关系的投影，不是资产
 data/worlds/*/atlas/*.png
 

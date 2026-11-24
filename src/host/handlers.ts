@@ -5,10 +5,17 @@ import { buildGraph, type Graph } from '../engine/graph.js';
 import { runRules } from '../engine/rules/index.js';
 import { stateAt } from '../engine/query.js';
 import { interrogate, rulingAdvice, suggestProposition } from '../engine/suggest.js';
-import type { Belief, Span, Strength, WorldNode } from '../engine/types.js';
+import type { AuditFinding, AuditReport, Belief, Span, Strength, WorldNode } from '../engine/types.js';
+import { llmConfigFromEnv, runSemanticAudit, type LlmConfig } from './llm.js';
+import { readAuditReport, setAuditStatus, writeAuditReport } from './auditStore.js';
 
 export interface NovelReq { method: string; path: string; query: Record<string, string>; body: unknown }
 export interface NovelRes { status: number; json?: unknown }
+export interface HandlerOptions {
+  /** 测试注入；生产默认用 env 里的 OpenAI-compatible 模型。 */
+  audit?: (nodes: WorldNode[]) => Promise<AuditReport>;
+  llm?: LlmConfig | null;
+}
 
 type JsonRecord = Record<string, unknown>;
 
@@ -118,7 +125,7 @@ function collectRefs(g: Graph, nodeId: string, beliefs: Belief[] = []): Citation
   };
 }
 
-export function createHandlers(root: string): (req: NovelReq) => Promise<NovelRes> {
+export function createHandlers(root: string, options: HandlerOptions = {}): (req: NovelReq) => Promise<NovelRes> {
   return async function handle(req: NovelReq): Promise<NovelRes> {
     try {
       const parts = req.path.split('/').filter(Boolean);
@@ -269,6 +276,55 @@ export function createHandlers(root: string): (req: NovelReq) => Promise<NovelRe
             id: n.id, title: n.title, strength: n.strength, span: n.span
           }))
         } };
+      }
+
+      // 语义审计：模型找矛盾，落盘为待确认报告；不自动改 conflictsWith。
+      if (parts[2] === 'audit' && parts.length === 3 && req.method === 'POST') {
+        const nodes = await store.listNodes(root, worldId);
+        if (nodes.length === 0)
+          return { status: 400, json: { error: '世界里还没有节点，无法审计' } };
+        const runner = options.audit;
+        const config = options.llm ?? llmConfigFromEnv();
+        if (!runner && !config)
+          return { status: 503, json: { error: '未配置语义审计模型：请设置 NOVEL_LLM_BASE_URL / NOVEL_LLM_MODEL / NOVEL_LLM_API_KEY' } };
+        try {
+          const report = runner
+            ? await runner(nodes)
+            : await runSemanticAudit(nodes, config!);
+          await writeAuditReport(root, worldId, report);
+          return { status: 200, json: report };
+        } catch (e) {
+          return { status: 502, json: { error: e instanceof Error ? e.message : String(e) } };
+        }
+      }
+
+      if (parts[2] === 'audits' && parts.length === 3 && req.method === 'GET')
+        return { status: 200, json: await readAuditReport(root, worldId) };
+
+      if (parts[2] === 'audits' && parts.length === 4 && parts[3] !== undefined && req.method === 'POST') {
+        const id = decodeURIComponent(parts[3]);
+        const body = asRecord(req.body);
+        const status = body['status'];
+        if (status !== 'accepted' && status !== 'dismissed')
+          return { status: 400, json: { error: 'status 只能是 accepted 或 dismissed' } };
+        try {
+          const report = await readAuditReport(root, worldId);
+          const target = report?.findings.find((f) => f.id === id);
+          if (!target) return { status: 404, json: { error: '找不到审计项' } };
+          if (status === 'accepted') {
+            const nodes = await store.listNodes(root, worldId);
+            const a = nodes.find((n) => n.id === target.a);
+            if (a && !a.conflictsWith.includes(target.b)) {
+              a.conflictsWith = [...a.conflictsWith, target.b];
+              await store.writeNode(root, worldId, a);
+              await invalidateIndex(root, worldId).catch(() => {});
+            }
+          }
+          const saved = await setAuditStatus(root, worldId, id, status);
+          return { status: 200, json: saved };
+        } catch (e) {
+          return { status: 500, json: { error: e instanceof Error ? e.message : String(e) } };
+        }
       }
 
       if (parts[2] === 'findings' && req.method === 'GET') {

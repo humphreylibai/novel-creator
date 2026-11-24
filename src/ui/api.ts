@@ -1,6 +1,6 @@
-import type { Finding, Span, Strength } from '../engine/types.js';
+import type { AuditFinding, AuditReport, Finding, Span, Strength } from '../engine/types.js';
 
-export type { Finding, Severity } from '../engine/types.js';
+export type { AuditFinding, AuditReport, Finding, Severity } from '../engine/types.js';
 
 export type NodeRecord = Record<string, unknown>;
 
@@ -156,3 +156,16 @@ export const worldConfig = (w: string) =>
 /** 某一年「在场」的条目切片；year 由服务端回显，界面以它为准。 */
 export const atYear = (w: string, year: number) =>
   j<TimelineSlice>(`/worlds/${encodeURIComponent(w)}/at?year=${encodeURIComponent(String(year))}`);
+
+export const listAudits = (w: string) =>
+  j<AuditReport | null>(`/worlds/${encodeURIComponent(w)}/audits`);
+
+export const runAudit = (w: string) =>
+  j<AuditReport>(`/worlds/${encodeURIComponent(w)}/audit`, { method: 'POST', body: '{}' });
+
+export const setAuditStatus = (w: string, id: string,
+  status: AuditFinding['status']) =>
+  j<AuditFinding>(`/worlds/${encodeURIComponent(w)}/audits/${encodeURIComponent(id)}`, {
+    method: 'POST',
+    body: JSON.stringify({ status }),
+  });

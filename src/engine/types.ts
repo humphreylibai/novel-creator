@@ -43,3 +43,25 @@ export interface Belief {
   span: Span;
   file: string;
 }
+
+/** 语义审计：模型对两条设定之间关系的判定，不等于已登记的 conflictsWith。 */
+export interface AuditFinding {
+  /** 稳定 id：两条节点 id + 关系类型的哈希 */
+  id: string;
+  a: string;
+  b: string;
+  relation: 'contradiction' | 'tension';
+  confidence: number;
+  reason: string;
+  evidence: string[];
+  status: 'open' | 'accepted' | 'dismissed';
+  /** 这两条是否已经被 author 显式登记为 conflictsWith */
+  alreadyRegistered: boolean;
+}
+
+export interface AuditReport {
+  model: string;
+  createdAt: string;
+  nodeCount: number;
+  findings: AuditFinding[];
+}
