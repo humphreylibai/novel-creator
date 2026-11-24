@@ -23,6 +23,14 @@ describe('内容规则', () => {
     const f = run([mk({ id: 'E-1', title: '空壳', derives: ['W-AX-1'], body: '短' })]);
     expect(f.some((x) => x.rule === 'R10')).toBe(true);
   });
+  it('R10：被公理列为表现的短条目不再报', () => {
+    const nodes = [
+      mk({ id: 'W-AX-1', title: '公理甲', kind: 'axiom', strength: 'hard', cost: ['记忆'], manifests: ['E-1'] }),
+      mk({ id: 'E-1', title: '短表现', derives: ['W-AX-1'], body: '短' })
+    ];
+    const f = run(nodes);
+    expect(f.some((x) => x.rule === 'R10' && x.nodeIds.includes('E-1'))).toBe(false);
+  });
   it('R11：公理少于 3 条报 info', () => {
     const f = run([mk({ id: 'W-AX-1', title: '唯一公理', kind: 'axiom', strength: 'hard', cost: ['记忆'] })]);
     expect(f.find((x) => x.rule === 'R11')?.severity).toBe('info');

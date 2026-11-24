@@ -22,8 +22,10 @@ export const R5: Rule = ({ nodes, graph }) =>
       message: `「${n.title}」从未进入正文`, hint: '要么用，要么删'
     }));
 
-export const R10: Rule = ({ nodes }) =>
-  nodes.filter((n) => n.body.trim().length < 20 && n.manifests.length === 0)
+export const R10: Rule = ({ nodes, graph }) =>
+  nodes.filter((n) =>
+    n.body.trim().length < 20 &&
+    !(graph.inbound.get(n.id) ?? []).some((e) => e.type === 'manifests'))
     .map((n) => ({
       rule: 'R10', severity: 'warn', nodeIds: [n.id],
       message: `「${n.title}」只有标题`, hint: '补两句，或删'
