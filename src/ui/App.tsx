@@ -4,6 +4,7 @@ import {
   type NodeRecord, type Stats,
 } from './api.js';
 import { Findings } from './views/Findings.js';
+import { CardWall } from './views/CardWall.js';
 import { NodeEditor } from './views/NodeEditor.js';
 import { Onboarding } from './views/Onboarding.js';
 import { StagePlaceholder } from './views/StagePlaceholder.js';
@@ -11,10 +12,11 @@ import { Timeline } from './views/Timeline.js';
 
 type StageId = 'setting' | 'planning' | 'writing';
 type SystemId = 'world' | 'geography' | 'characters' | 'factions' | 'chronicle' | 'events';
-type WorldView = 'nodes' | 'findings' | 'timeline';
+type WorldView = 'nodes' | 'cards' | 'findings' | 'timeline';
 
 const WORLD_VIEWS: { id: WorldView; label: string }[] = [
   { id: 'nodes', label: '条目' },
+  { id: 'cards', label: '卡片墙' },
   { id: 'findings', label: '诊断' },
   { id: 'timeline', label: '时间轴' },
 ];
@@ -365,6 +367,10 @@ export function App() {
                 <div style={{ padding: 24, color: '#a8a29a' }}>
                   在 data/worlds/ 下还没有世界。先用编辑器创建 world.yaml 与 nodes/ 目录。
                 </div>
+              ) : view === 'cards' ? (
+                world
+                  ? <CardWall worldId={world} onOpen={(id) => void openNodeById(id)} />
+                  : <div style={{ padding: 24, color: '#a8a29a' }}>加载中…</div>
               ) : view === 'findings' ? (
                 world
                   ? <Findings worldId={world} onOpen={(id) => void openNodeById(id)} />
