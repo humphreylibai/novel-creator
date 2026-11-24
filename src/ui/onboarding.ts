@@ -6,4 +6,4 @@ export const onboardingActive = (stat: Stats | null, hasSelection: boolean): boo
 
 /** 引导期间不允许从工具栏绕开去建条目/公理。 */
 export const canCreateEntry = (stat: Stats | null): boolean =>
-  !stat || stat.axioms >= 3;
+  !!stat && stat.axioms >= 3;

@@ -30,6 +30,11 @@ describe('世界删除', () => {
     expect((await h({ method: 'DELETE', path: '/worlds/A', query: {}, body: null })).status).toBe(404);
   });
 
+  it('重复建同名世界返回 409，不覆盖原配置', async () => {
+    const r = await h({ method: 'POST', path: '/worlds', query: {}, body: { id: 'B', config: config('B2') } });
+    expect(r.status).toBe(409);
+  });
+
   it('非法 id 不进入删除', async () => {
     const r = await h({ method: 'DELETE', path: '/worlds/..%2F..', query: {}, body: null });
     expect(r.status).toBe(404);

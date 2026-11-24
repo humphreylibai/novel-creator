@@ -252,6 +252,7 @@ export function App() {
 
   const stageMeta = STAGES.find((s) => s.id === stage) ?? STAGES[0]!;
   const creationLocked = !canCreateEntry(stat);
+  const worldLoading = !!world && stat === null;
 
   return (
     <div style={{
@@ -340,7 +341,7 @@ export function App() {
                 <select
                   value={world}
                   disabled={worlds.length === 0}
-                  onChange={(e) => { setStat(null); setWorld(e.target.value); }}
+                  onChange={(e) => { setStat(null); setSelected(null); setView('nodes'); setWorld(e.target.value); }}
                   style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid #e7e2da', background: '#fff' }}
                 >
                   {worlds.length === 0
@@ -368,13 +369,16 @@ export function App() {
                         type="button"
                         role="tab"
                         aria-selected={active}
+                        disabled={(onboardingActive(stat, selected !== null) || worldLoading) && item.id !== 'nodes'}
                         onClick={() => setView(item.id)}
                         style={{
                           padding: '4px 10px', borderRadius: 4, border: 'none',
                           background: active ? '#fff' : 'transparent',
-                          color: active ? '#b45309' : '#2c2926',
+                          color: (onboardingActive(stat, selected !== null) || worldLoading) && item.id !== 'nodes'
+                            ? '#c9c4bc' : (active ? '#b45309' : '#2c2926'),
                           boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
-                          cursor: 'pointer', fontSize: 13,
+                          cursor: (onboardingActive(stat, selected !== null) || worldLoading) && item.id !== 'nodes'
+                            ? 'not-allowed' : 'pointer', fontSize: 13,
                         }}
                       >{item.label}</button>
                     );
@@ -415,13 +419,18 @@ export function App() {
                 <div style={{ padding: 24, color: '#a8a29a' }}>
                   还没有世界。点上方「＋ 新建世界」创建。
                 </div>
+              ) : worldLoading && !selected ? (
+                <div style={{ padding: 24, color: '#a8a29a' }}>读取世界状态…</div>
+              ) : onboardingActive(stat, selected !== null) && stat ? (
+                <Onboarding worldId={world} stats={stat} onDone={handleOnboardingDone} />
               ) : view === 'cards' ? (
                 world
-                  ? <CardWall worldId={world} onOpen={(id) => void openNodeById(id)} />
+                  ? <CardWall key={world} worldId={world} onOpen={(id) => void openNodeById(id)} />
                   : <div style={{ padding: 24, color: '#a8a29a' }}>加载中…</div>
               ) : view === 'fragments' ? (
                 world
                   ? <Fragments
+                    key={world}
                     worldId={world}
                     onChanged={() => {
                       if (selected) void selectNode({ id: selected['id'] });
@@ -430,22 +439,20 @@ export function App() {
                   : <div style={{ padding: 24, color: '#a8a29a' }}>加载中…</div>
               ) : view === 'beliefs' ? (
                 world
-                  ? <Beliefs worldId={world} onChanged={() => {}} />
+                  ? <Beliefs key={world} worldId={world} onChanged={() => {}} />
                   : <div style={{ padding: 24, color: '#a8a29a' }}>加载中…</div>
               ) : view === 'graph' ? (
                 world
-                  ? <Graph worldId={world} onOpen={(id) => void openNodeById(id)} />
+                  ? <Graph key={world} worldId={world} onOpen={(id) => void openNodeById(id)} />
                   : <div style={{ padding: 24, color: '#a8a29a' }}>加载中…</div>
               ) : view === 'findings' ? (
                 world
-                  ? <Findings worldId={world} onOpen={(id) => void openNodeById(id)} />
+                  ? <Findings key={world} worldId={world} onOpen={(id) => void openNodeById(id)} />
                   : <div style={{ padding: 24, color: '#a8a29a' }}>加载中…</div>
               ) : view === 'timeline' ? (
                 world
-                  ? <Timeline worldId={world} onOpen={(id) => void openNodeById(id)} />
+                  ? <Timeline key={world} worldId={world} onOpen={(id) => void openNodeById(id)} />
                   : <div style={{ padding: 24, color: '#a8a29a' }}>加载中…</div>
-              ) : onboardingActive(stat, selected !== null) && stat ? (
-                <Onboarding worldId={world} stats={stat} onDone={handleOnboardingDone} />
               ) : (
                 <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
                   <div style={{

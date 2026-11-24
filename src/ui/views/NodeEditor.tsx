@@ -318,6 +318,7 @@ export function NodeEditor({ world, node, nodes, onSaved, onDeleted }: {
         <div style={{ marginTop: 8, fontSize: 13, color: '#a8a29a', lineHeight: 1.7 }}>
           <div>被片段引用：{refs.fragments.length ? refs.fragments.join('、') : '无'}</div>
           <div>被条目引用：{refs.nodes.length ? refs.nodes.map((r) => `${r.title}(${r.via})`).join('、') : '无'}</div>
+          <div>被认知引用：{(refs.beliefs ?? []).length ? (refs.beliefs ?? []).join('、') : '无'}</div>
         </div>
       ) : null}
     </div>

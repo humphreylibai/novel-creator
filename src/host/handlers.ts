@@ -92,9 +92,10 @@ function toNode(input: JsonRecord, prev: WorldNode | null): WorldNode {
 export interface CitationRefs {
   fragments: string[];
   nodes: { id: string; title: string; via: string }[];
+  beliefs: string[];
 }
 
-function collectRefs(g: Graph, nodeId: string): CitationRefs {
+function collectRefs(g: Graph, nodeId: string, beliefs: Belief[] = []): CitationRefs {
   const fragments = new Set<string>();
   const nodes = new Map<string, CitationRefs['nodes'][number]>();
   for (const edge of g.inbound.get(nodeId) ?? []) {
@@ -111,7 +112,10 @@ function collectRefs(g: Graph, nodeId: string): CitationRefs {
       });
     }
   }
-  return { fragments: [...fragments], nodes: [...nodes.values()] };
+  return {
+    fragments: [...fragments], nodes: [...nodes.values()],
+    beliefs: beliefs.filter((b) => b.target === nodeId).map((b) => b.id),
+  };
 }
 
 export function createHandlers(root: string): (req: NovelReq) => Promise<NovelRes> {
@@ -130,7 +134,13 @@ export function createHandlers(root: string): (req: NovelReq) => Promise<NovelRe
             return { status: 400, json: { error: '需要 id 与 config' } };
           if (!isSafeName(id))
             return { status: 400, json: { error: '世界 id 不能包含路径分隔符' } };
-          await store.createWorld(root, id, config);
+          try {
+            await store.createWorld(root, id, config);
+          } catch (e) {
+            if (e instanceof Error && e.message.startsWith('世界已存在'))
+              return { status: 409, json: { error: e.message } };
+            throw e;
+          }
           return { status: 201, json: { ok: true } };
         }
       }
@@ -170,7 +180,8 @@ export function createHandlers(root: string): (req: NovelReq) => Promise<NovelRe
         && req.method === 'GET') {
         const nodeId = decodeURIComponent(parts[3]!);
         const g = buildGraph(await store.listNodes(root, worldId), await store.listFragments(root, worldId));
-        return { status: 200, json: collectRefs(g, nodeId) };
+        return { status: 200, json: collectRefs(
+          g, nodeId, await store.listBeliefs(root, worldId)) };
       }
 
       if (parts[2] === 'nodes' && parts.length === 5 && parts[4] === 'suggest'
@@ -212,8 +223,8 @@ export function createHandlers(root: string): (req: NovelReq) => Promise<NovelRe
           const g = buildGraph(await store.listNodes(root, worldId), await store.listFragments(root, worldId));
           if (!g.nodes.has(nodeId))
             return { status: 404, json: { error: '节点不存在' } };
-          const refs = collectRefs(g, nodeId);
-          const total = refs.fragments.length + refs.nodes.length;
+          const refs = collectRefs(g, nodeId, await store.listBeliefs(root, worldId));
+          const total = refs.fragments.length + refs.nodes.length + refs.beliefs.length;
           if (total > 0) {
             return { status: 409, json: {
               error: `被 ${total} 处引用，删除会断链`,
@@ -282,6 +293,9 @@ export function createHandlers(root: string): (req: NovelReq) => Promise<NovelRe
           } catch (e) {
             return { status: 422, json: { error: e instanceof Error ? e.message : String(e) } };
           }
+          const nodes = await store.listNodes(root, worldId);
+          if (!nodes.some((n) => n.id === belief.target))
+            return { status: 422, json: { error: `belief target 不存在：${belief.target}` } };
           await store.writeBelief(root, worldId, belief);
           return { status: 200, json: belief };
         }

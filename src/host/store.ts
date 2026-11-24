@@ -27,6 +27,9 @@ async function ensureDir(p: string): Promise<void> {
 
 export async function createWorld(root: string, id: string, configYaml: string): Promise<void> {
   if (!isSafeName(id)) throw new Error('非法世界 id');
+  // 建世界不能静默覆盖：world.yaml 里有母题/历法/类型契约，误点一次就没了。
+  if (existsSync(join(worldDir(root, id), 'world.yaml')))
+    throw new Error(`世界已存在：${id}`);
   await ensureDir(nodesDir(root, id));
   await ensureDir(fragDir(root, id));
   await ensureDir(join(worldDir(root, id), 'beliefs'));
@@ -122,13 +125,19 @@ export async function listBeliefs(root: string, worldId: string): Promise<Belief
     if ((e as NodeJS.ErrnoException).code === 'ENOENT') return [];
     throw e;
   }
-  const out = await Promise.all(names
-    .filter((name) => name.endsWith('.yaml'))
-    .map(async (name) => parseBelief(
-      await readFile(join(dir, name), 'utf8'),
-      basename(name, '.yaml'),
-      `beliefs/${name}`,
-    )));
+  const out: Belief[] = [];
+  for (const name of names.filter((x) => x.endsWith('.yaml'))) {
+    try {
+      out.push(parseBelief(
+        await readFile(join(dir, name), 'utf8'),
+        basename(name, '.yaml'),
+        `beliefs/${name}`,
+      ));
+    } catch (e) {
+      // 单个手写 belief 坏了不能拖垮整个诊断；跳过并留下服务端日志。
+      console.warn(`[novel] 跳过无法解析的认知文件 ${name}:`, e instanceof Error ? e.message : e);
+    }
+  }
   return out.sort((a, b) => a.id.localeCompare(b.id, 'zh'));
 }
 

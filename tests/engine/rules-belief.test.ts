@@ -19,10 +19,10 @@ const belief = (over: Partial<Belief>): Belief => ({
 });
 
 describe('R9', () => {
-  it('hard + 高置信 + 文本不一致 -> warn', () => {
+  it('hard + 高置信 + 文本不一致 -> info', () => {
     const f = r9Beliefs([node({})], [belief({})]);
     expect(f).toHaveLength(1);
-    expect(f[0]).toMatchObject({ rule: 'R9', severity: 'warn', nodeIds: ['W-1'] });
+    expect(f[0]).toMatchObject({ rule: 'R9', severity: 'info', nodeIds: ['W-1', 'B-1'] });
     expect(f[0]!.message).toContain('民间');
   });
 
@@ -32,9 +32,10 @@ describe('R9', () => {
     expect(r9Beliefs([node({})], [belief({ content: '玄帝没有一统天下' })])).toEqual([]);
   });
 
-  it('没有命题时用标题匹配', () => {
-    const n = node({ proposition: null, title: '海瑞' });
-    expect(r9Beliefs([n], [belief({ content: '海瑞是清官' })])).toEqual([]);
-    expect(r9Beliefs([n], [belief({ content: '海瑞是贪官' })])).toHaveLength(1);
+  it('命题/标题/别名命中即视为转述，句读差异忽略', () => {
+    const n = node({ proposition: '玄帝没有一统天下', title: '海瑞', aliases: ['刚峰'] });
+    expect(r9Beliefs([n], [belief({ content: '玄帝没有一统天下。' })])).toEqual([]);
+    expect(r9Beliefs([n], [belief({ content: '刚峰是个清官' })])).toEqual([]);
+    expect(r9Beliefs([n], [belief({ content: '另一个人曾统一天下' })])).toHaveLength(1);
   });
 });

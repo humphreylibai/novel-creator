@@ -13,6 +13,7 @@ export interface CitationNodeRef {
 export interface Citations {
   fragments: string[];
   nodes: CitationNodeRef[];
+  beliefs?: string[];
 }
 
 /** 统一把 `/api` 前缀、204、错误体翻译成 Promise / Error。 */
@@ -63,10 +64,10 @@ export async function deleteNode(w: string, id: string): Promise<void> {
   const body = await res.json().catch(() => ({ error: res.statusText }));
   const b = body as {
     error?: string;
-    refs?: { fragments: string[]; nodes: { title: string; via: string }[] };
+    refs?: { fragments: string[]; nodes: { title: string; via: string }[]; beliefs: string[] };
   };
   const refs = b.refs
-    ? `（片段：${b.refs.fragments.join('、') || '无'}；条目：${b.refs.nodes.map((n) => `${n.title}(${n.via})`).join('、') || '无'}）`
+    ? `（片段：${b.refs.fragments.join('、') || '无'}；条目：${b.refs.nodes.map((n) => `${n.title}(${n.via})`).join('、') || '无'}；认知：${(b.refs.beliefs ?? []).join('、') || '无'}）`
     : '';
   throw new Error(`${b.error ?? res.statusText}${refs}`);
 }

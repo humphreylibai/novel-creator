@@ -25,6 +25,23 @@ const CONTENT_TYPES: Record<string, string> = {
 
 const JSON_TYPE = 'application/json; charset=utf-8';
 
+const MUTATING = new Set(['POST', 'PUT', 'DELETE', 'PATCH']);
+
+/** 允许无 Origin 的本地 curl；浏览器跨源写请求必须拒绝（简单请求也没有预检）。 */
+function sameOrigin(req: IncomingMessage): boolean {
+  const origin = req.headers.origin;
+  if (!origin) return true;
+  const host = req.headers.host;
+  if (!host) return false;
+  try {
+    const u = new URL(origin);
+    return u.host === host
+      && (u.hostname === '127.0.0.1' || u.hostname === 'localhost' || u.hostname === '[::1]');
+  } catch {
+    return false;
+  }
+}
+
 const isInside = (root: string, target: string): boolean =>
   target === root || target.startsWith(root + sep);
 
@@ -113,6 +130,10 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
     const pathname = url.pathname;
 
     if (pathname === '/api' || pathname.startsWith('/api/')) {
+      if (MUTATING.has(req.method ?? '') && !sameOrigin(req)) {
+        sendJson(res, 403, { error: '跨源写请求被拒绝' });
+        return;
+      }
       const path = pathname.slice('/api'.length) || '/';
       const query = Object.fromEntries(url.searchParams.entries());
 

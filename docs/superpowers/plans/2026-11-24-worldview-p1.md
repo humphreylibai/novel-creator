@@ -129,7 +129,7 @@ export function r9Beliefs(nodes: WorldNode[], beliefs: Belief[]): Finding[] {
     const claim = norm(b.content);
     if (hay.some((h) => h && claim.includes(h))) return [];
     return [{
-      rule: 'R9', severity: 'warn' as const, nodeIds: [n.id, b.id],
+      rule: 'R9', severity: 'info' as const, nodeIds: [n.id, b.id],
       message: `${b.holder} 以 ${b.confidence} 的置信相信「${b.content}」，与 hard 条目「${n.title}」不一致；请确认是误解还是写漏`,
     }];
   });

@@ -7315,7 +7315,7 @@
     if (res.status === 204) return;
     const body = await res.json().catch(() => ({ error: res.statusText }));
     const b = body;
-    const refs = b.refs ? `\uFF08\u7247\u6BB5\uFF1A${b.refs.fragments.join("\u3001") || "\u65E0"}\uFF1B\u6761\u76EE\uFF1A${b.refs.nodes.map((n) => `${n.title}(${n.via})`).join("\u3001") || "\u65E0"}\uFF09` : "";
+    const refs = b.refs ? `\uFF08\u7247\u6BB5\uFF1A${b.refs.fragments.join("\u3001") || "\u65E0"}\uFF1B\u6761\u76EE\uFF1A${b.refs.nodes.map((n) => `${n.title}(${n.via})`).join("\u3001") || "\u65E0"}\uFF1B\u8BA4\u77E5\uFF1A${(b.refs.beliefs ?? []).join("\u3001") || "\u65E0"}\uFF09` : "";
     throw new Error(`${b.error ?? res.statusText}${refs}`);
   }
   var suggestions = (w, id) => j(`/worlds/${encodeURIComponent(w)}/nodes/${encodeURIComponent(id)}/suggest`);
@@ -7426,7 +7426,8 @@
     R5: "\u672A\u88AB\u6B63\u6587\u5F15\u7528",
     R1: "\u6709\u672A\u51B3\u77DB\u76FE",
     R6: "\u6709\u672A\u51B3\u77DB\u76FE",
-    R3: "\u8BA4\u77E5\u51B2\u7A81"
+    R3: "\u8BA4\u77E5\u51B2\u7A81",
+    R9: "\u9AD8\u7F6E\u4FE1\u8BA4\u77E5\u51B2\u7A81"
   };
   function badgesFor(findings2, nodeId) {
     const out = [];
@@ -8840,6 +8841,10 @@ theme:
         /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { children: [
           "\u88AB\u6761\u76EE\u5F15\u7528\uFF1A",
           refs.nodes.length ? refs.nodes.map((r) => `${r.title}(${r.via})`).join("\u3001") : "\u65E0"
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { children: [
+          "\u88AB\u8BA4\u77E5\u5F15\u7528\uFF1A",
+          (refs.beliefs ?? []).length ? (refs.beliefs ?? []).join("\u3001") : "\u65E0"
         ] })
       ] }) : null
     ] });
@@ -8847,7 +8852,7 @@ theme:
 
   // src/ui/onboarding.ts
   var onboardingActive = (stat, hasSelection) => !!stat && stat.axioms < 3 && !hasSelection;
-  var canCreateEntry = (stat) => !stat || stat.axioms >= 3;
+  var canCreateEntry = (stat) => !!stat && stat.axioms >= 3;
 
   // src/ui/views/Onboarding.tsx
   var import_react8 = __toESM(require_react(), 1);
@@ -9313,6 +9318,7 @@ theme:
     };
     const stageMeta = STAGES.find((s) => s.id === stage) ?? STAGES[0];
     const creationLocked = !canCreateEntry(stat);
+    const worldLoading = !!world && stat === null;
     return /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("div", { style: {
       position: "absolute",
       inset: 0,
@@ -9429,6 +9435,8 @@ theme:
                 disabled: worlds.length === 0,
                 onChange: (e) => {
                   setStat(null);
+                  setSelected(null);
+                  setView("nodes");
                   setWorld(e.target.value);
                 },
                 style: { padding: "5px 8px", borderRadius: 6, border: "1px solid #e7e2da", background: "#fff" },
@@ -9468,15 +9476,16 @@ theme:
                   type: "button",
                   role: "tab",
                   "aria-selected": active,
+                  disabled: (onboardingActive(stat, selected !== null) || worldLoading) && item.id !== "nodes",
                   onClick: () => setView(item.id),
                   style: {
                     padding: "4px 10px",
                     borderRadius: 4,
                     border: "none",
                     background: active ? "#fff" : "transparent",
-                    color: active ? "#b45309" : "#2c2926",
+                    color: (onboardingActive(stat, selected !== null) || worldLoading) && item.id !== "nodes" ? "#c9c4bc" : active ? "#b45309" : "#2c2926",
                     boxShadow: active ? "0 1px 2px rgba(0,0,0,0.08)" : "none",
-                    cursor: "pointer",
+                    cursor: (onboardingActive(stat, selected !== null) || worldLoading) && item.id !== "nodes" ? "not-allowed" : "pointer",
                     fontSize: 13
                   },
                   children: item.label
@@ -9522,16 +9531,17 @@ theme:
             color: "#b91c1c",
             fontSize: 13
           }, children: error }) : null,
-          worlds.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { style: { padding: 24, color: "#a8a29a" }, children: "\u8FD8\u6CA1\u6709\u4E16\u754C\u3002\u70B9\u4E0A\u65B9\u300C\uFF0B \u65B0\u5EFA\u4E16\u754C\u300D\u521B\u5EFA\u3002" }) : view === "cards" ? world ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(CardWall, { worldId: world, onOpen: (id) => void openNodeById(id) }) : /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { style: { padding: 24, color: "#a8a29a" }, children: "\u52A0\u8F7D\u4E2D\u2026" }) : view === "fragments" ? world ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+          worlds.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { style: { padding: 24, color: "#a8a29a" }, children: "\u8FD8\u6CA1\u6709\u4E16\u754C\u3002\u70B9\u4E0A\u65B9\u300C\uFF0B \u65B0\u5EFA\u4E16\u754C\u300D\u521B\u5EFA\u3002" }) : worldLoading && !selected ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { style: { padding: 24, color: "#a8a29a" }, children: "\u8BFB\u53D6\u4E16\u754C\u72B6\u6001\u2026" }) : onboardingActive(stat, selected !== null) && stat ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(Onboarding, { worldId: world, stats: stat, onDone: handleOnboardingDone }) : view === "cards" ? world ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(CardWall, { worldId: world, onOpen: (id) => void openNodeById(id) }, world) : /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { style: { padding: 24, color: "#a8a29a" }, children: "\u52A0\u8F7D\u4E2D\u2026" }) : view === "fragments" ? world ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
             Fragments,
             {
               worldId: world,
               onChanged: () => {
                 if (selected) void selectNode({ id: selected["id"] });
               }
-            }
+            },
+            world
           ) : /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { style: { padding: 24, color: "#a8a29a" }, children: "\u52A0\u8F7D\u4E2D\u2026" }) : view === "beliefs" ? world ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(Beliefs, { worldId: world, onChanged: () => {
-          } }) : /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { style: { padding: 24, color: "#a8a29a" }, children: "\u52A0\u8F7D\u4E2D\u2026" }) : view === "graph" ? world ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(Graph, { worldId: world, onOpen: (id) => void openNodeById(id) }) : /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { style: { padding: 24, color: "#a8a29a" }, children: "\u52A0\u8F7D\u4E2D\u2026" }) : view === "findings" ? world ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(Findings, { worldId: world, onOpen: (id) => void openNodeById(id) }) : /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { style: { padding: 24, color: "#a8a29a" }, children: "\u52A0\u8F7D\u4E2D\u2026" }) : view === "timeline" ? world ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(Timeline, { worldId: world, onOpen: (id) => void openNodeById(id) }) : /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { style: { padding: 24, color: "#a8a29a" }, children: "\u52A0\u8F7D\u4E2D\u2026" }) : onboardingActive(stat, selected !== null) && stat ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(Onboarding, { worldId: world, stats: stat, onDone: handleOnboardingDone }) : /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("div", { style: { display: "flex", flex: 1, minHeight: 0 }, children: [
+          } }, world) : /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { style: { padding: 24, color: "#a8a29a" }, children: "\u52A0\u8F7D\u4E2D\u2026" }) : view === "graph" ? world ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(Graph, { worldId: world, onOpen: (id) => void openNodeById(id) }, world) : /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { style: { padding: 24, color: "#a8a29a" }, children: "\u52A0\u8F7D\u4E2D\u2026" }) : view === "findings" ? world ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(Findings, { worldId: world, onOpen: (id) => void openNodeById(id) }, world) : /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { style: { padding: 24, color: "#a8a29a" }, children: "\u52A0\u8F7D\u4E2D\u2026" }) : view === "timeline" ? world ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(Timeline, { worldId: world, onOpen: (id) => void openNodeById(id) }, world) : /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { style: { padding: 24, color: "#a8a29a" }, children: "\u52A0\u8F7D\u4E2D\u2026" }) : /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("div", { style: { display: "flex", flex: 1, minHeight: 0 }, children: [
             /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("div", { style: {
               width: 220,
               flexShrink: 0,
