@@ -12,7 +12,7 @@ const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 export function Findings({ worldId, onOpen }: { worldId: string; onOpen: (id: string) => void }) {
   const [list, setList] = useState<Finding[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let alive = true;

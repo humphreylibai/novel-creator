@@ -13,9 +13,15 @@ const here = dirname(fileURLToPath(import.meta.url));
 const root = resolveDataRoot(process.env['NOVEL_DATA_ROOT'], resolve(here, '../..'));
 
 async function main(): Promise<void> {
-  const worldId = process.argv[2] ?? (await store.listWorlds(root))[0];
+  const worlds = await store.listWorlds(root);
+  const worldId = process.argv[2] ?? worlds[0];
   if (!worldId) {
     console.error(`没有可检查的世界：${resolve(root, 'worlds')} 为空`);
+    process.exitCode = 2;
+    return;
+  }
+  if (!worlds.includes(worldId)) {
+    console.error(`世界不存在：${worldId}（${resolve(root, 'worlds')}）`);
     process.exitCode = 2;
     return;
   }

@@ -11,10 +11,11 @@ export function Timeline({ worldId, onOpen }: { worldId: string; onOpen: (id: st
   const [year, setYear] = useState(612);
   const [rows, setRows] = useState<TimelineNode[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let alive = true;
+    setRows([]);
     setError(null);
     setLoading(true);
     atYear(worldId, year)

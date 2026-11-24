@@ -7315,7 +7315,7 @@
   function Findings({ worldId, onOpen }) {
     const [list, setList] = (0, import_react.useState)([]);
     const [error, setError] = (0, import_react.useState)(null);
-    const [loading, setLoading] = (0, import_react.useState)(false);
+    const [loading, setLoading] = (0, import_react.useState)(true);
     (0, import_react.useEffect)(() => {
       let alive = true;
       setList([]);
@@ -7618,9 +7618,10 @@
     const [year, setYear] = (0, import_react4.useState)(612);
     const [rows, setRows] = (0, import_react4.useState)([]);
     const [error, setError] = (0, import_react4.useState)(null);
-    const [loading, setLoading] = (0, import_react4.useState)(false);
+    const [loading, setLoading] = (0, import_react4.useState)(true);
     (0, import_react4.useEffect)(() => {
       let alive = true;
+      setRows([]);
       setError(null);
       setLoading(true);
       atYear(worldId, year).then((r) => {
@@ -7751,6 +7752,8 @@
     const [loading, setLoading] = (0, import_react5.useState)(false);
     const [missing, setMissing] = (0, import_react5.useState)([]);
     const [stat, setStat] = (0, import_react5.useState)(null);
+    const worldRef = (0, import_react5.useRef)(world);
+    worldRef.current = world;
     const reloadWorlds = (0, import_react5.useCallback)(async () => {
       try {
         const list = await listWorlds();
@@ -7814,19 +7817,25 @@
       };
     }, [world, nodes]);
     const reloadNodes = (0, import_react5.useCallback)(async () => {
-      if (!world) return;
+      const w = world;
+      if (!w) return;
       try {
-        setNodes(await listNodes(world));
+        const list = await listNodes(w);
+        if (worldRef.current !== w) return;
+        setNodes(list);
       } catch (e) {
-        setError(message3(e));
+        if (worldRef.current === w) setError(message3(e));
       }
     }, [world]);
     const reloadStats = (0, import_react5.useCallback)(async () => {
-      if (!world) return;
+      const w = world;
+      if (!w) return;
       try {
-        setStat(await stats(world));
+        const next = await stats(w);
+        if (worldRef.current !== w) return;
+        setStat(next);
       } catch {
-        setStat(null);
+        if (worldRef.current === w) setStat(null);
       }
     }, [world]);
     const handleOnboardingDone = () => {
@@ -7835,20 +7844,28 @@
     };
     const selectNode = async (record) => {
       const id = String(record["id"] ?? "");
-      if (!world || !id) return;
+      const w = world;
+      if (!w || !id) return;
       try {
-        setSelected(await readNode(world, id));
+        const next = await readNode(w, id);
+        if (worldRef.current !== w) return;
+        setSelected(next);
+        setError(null);
       } catch (e) {
-        setError(message3(e));
+        if (worldRef.current === w) setError(message3(e));
       }
     };
     const openNodeById = async (id) => {
       setView("nodes");
-      if (!world) return;
+      const w = world;
+      if (!w) return;
       try {
-        setSelected(await readNode(world, id));
+        const next = await readNode(w, id);
+        if (worldRef.current !== w) return;
+        setSelected(next);
+        setError(null);
       } catch (e) {
-        setError(message3(e));
+        if (worldRef.current === w) setError(message3(e));
       }
     };
     const newEntry = () => {
@@ -7856,7 +7873,9 @@
       setSelected({ id: `entry-${stamp}`, title: `\u65B0\u6761\u76EE-${stamp}`, body: "", kind: "entry", extra: {} });
     };
     const handleSaved = (saved) => {
+      if (!world || worldRef.current !== world) return;
       setSelected(saved);
+      setError(null);
       void reloadNodes();
     };
     const stageMeta = STAGES.find((s) => s.id === stage) ?? STAGES[0];

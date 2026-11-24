@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   listNodes, listWorlds, missingLinks, readNode, stats,
   type NodeRecord, type Stats,
@@ -52,6 +52,10 @@ export function App() {
   const [missing, setMissing] = useState<string[]>([]);
   /** null 表示「尚未加载」，不能据此显示开局引导。 */
   const [stat, setStat] = useState<Stats | null>(null);
+
+  // 异步回调返回时用它判断世界是否已经切换；旧世界的结果一律丢弃。
+  const worldRef = useRef(world);
+  worldRef.current = world;
 
   const reloadWorlds = useCallback(async () => {
     try {
@@ -117,20 +121,26 @@ export function App() {
   }, [world, nodes]);
 
   const reloadNodes = useCallback(async () => {
-    if (!world) return;
+    const w = world;
+    if (!w) return;
     try {
-      setNodes(await listNodes(world));
+      const list = await listNodes(w);
+      if (worldRef.current !== w) return;
+      setNodes(list);
     } catch (e) {
-      setError(message(e));
+      if (worldRef.current === w) setError(message(e));
     }
   }, [world]);
 
   const reloadStats = useCallback(async () => {
-    if (!world) return;
+    const w = world;
+    if (!w) return;
     try {
-      setStat(await stats(world));
+      const next = await stats(w);
+      if (worldRef.current !== w) return;
+      setStat(next);
     } catch {
-      setStat(null);
+      if (worldRef.current === w) setStat(null);
     }
   }, [world]);
 
@@ -142,22 +152,30 @@ export function App() {
 
   const selectNode = async (record: NodeRecord) => {
     const id = String(record['id'] ?? '');
-    if (!world || !id) return;
+    const w = world;
+    if (!w || !id) return;
     try {
-      setSelected(await readNode(world, id));
+      const next = await readNode(w, id);
+      if (worldRef.current !== w) return;
+      setSelected(next);
+      setError(null);
     } catch (e) {
-      setError(message(e));
+      if (worldRef.current === w) setError(message(e));
     }
   };
 
   /** 诊断 / 时间轴里的跳转：先切回条目视图，再加载节点；失败落到现有 error 状态。 */
   const openNodeById = async (id: string) => {
     setView('nodes');
-    if (!world) return;
+    const w = world;
+    if (!w) return;
     try {
-      setSelected(await readNode(world, id));
+      const next = await readNode(w, id);
+      if (worldRef.current !== w) return;
+      setSelected(next);
+      setError(null);
     } catch (e) {
-      setError(message(e));
+      if (worldRef.current === w) setError(message(e));
     }
   };
 
@@ -167,7 +185,10 @@ export function App() {
   };
 
   const handleSaved = (saved: NodeRecord) => {
+    // onSaved 可能来自切换世界前那次保存的旧闭包；世界已变时不能把它塞进新世界。
+    if (!world || worldRef.current !== world) return;
     setSelected(saved);
+    setError(null);
     void reloadNodes();
   };
 
