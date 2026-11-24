@@ -5,6 +5,7 @@ import {
 } from './api.js';
 import { Findings } from './views/Findings.js';
 import { CardWall } from './views/CardWall.js';
+import { Fragments } from './views/Fragments.js';
 import { NodeEditor } from './views/NodeEditor.js';
 import { Onboarding } from './views/Onboarding.js';
 import { StagePlaceholder } from './views/StagePlaceholder.js';
@@ -12,13 +13,14 @@ import { Timeline } from './views/Timeline.js';
 
 type StageId = 'setting' | 'planning' | 'writing';
 type SystemId = 'world' | 'geography' | 'characters' | 'factions' | 'chronicle' | 'events';
-type WorldView = 'nodes' | 'cards' | 'findings' | 'timeline';
+type WorldView = 'nodes' | 'cards' | 'findings' | 'timeline' | 'fragments';
 
 const WORLD_VIEWS: { id: WorldView; label: string }[] = [
   { id: 'nodes', label: '条目' },
   { id: 'cards', label: '卡片墙' },
   { id: 'findings', label: '诊断' },
   { id: 'timeline', label: '时间轴' },
+  { id: 'fragments', label: '片段' },
 ];
 
 const STAGES: { id: StageId; label: string; reason: string }[] = [
@@ -370,6 +372,15 @@ export function App() {
               ) : view === 'cards' ? (
                 world
                   ? <CardWall worldId={world} onOpen={(id) => void openNodeById(id)} />
+                  : <div style={{ padding: 24, color: '#a8a29a' }}>加载中…</div>
+              ) : view === 'fragments' ? (
+                world
+                  ? <Fragments
+                    worldId={world}
+                    onChanged={() => {
+                      if (selected) void selectNode({ id: selected['id'] });
+                    }}
+                  />
                   : <div style={{ padding: 24, color: '#a8a29a' }}>加载中…</div>
               ) : view === 'findings' ? (
                 world
