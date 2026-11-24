@@ -66,6 +66,14 @@ export interface TimelineSlice {
   nodes: TimelineNode[];
 }
 
+/** 时间轴只需要历法；服务端返回的是完整 world.yaml 解析结果。 */
+export interface WorldCalendar {
+  calendar: { epochs: { start: number; end: number | null }[]; format?: string };
+}
+
+export const worldConfig = (w: string) =>
+  j<WorldCalendar>(`/worlds/${encodeURIComponent(w)}/config`);
+
 /** 某一年「在场」的条目切片；year 由服务端回显，界面以它为准。 */
 export const atYear = (w: string, year: number) =>
   j<TimelineSlice>(`/worlds/${encodeURIComponent(w)}/at?year=${encodeURIComponent(String(year))}`);

@@ -7305,6 +7305,7 @@
   var citations = (w, id) => j(`/worlds/${encodeURIComponent(w)}/nodes/${encodeURIComponent(id)}/citations`);
   var missingLinks = (w) => j(`/worlds/${encodeURIComponent(w)}/graph/missing`);
   var findings = (w) => j(`/worlds/${encodeURIComponent(w)}/findings`);
+  var worldConfig = (w) => j(`/worlds/${encodeURIComponent(w)}/config`);
   var atYear = (w, year) => j(`/worlds/${encodeURIComponent(w)}/at?year=${encodeURIComponent(String(year))}`);
 
   // src/ui/views/Findings.tsx
@@ -7612,13 +7613,41 @@
 
   // src/ui/views/Timeline.tsx
   var import_react4 = __toESM(require_react(), 1);
+
+  // src/ui/timelineRange.ts
+  var FALLBACK = { min: 0, max: 800, year: 612 };
+  function timelineRange(config, defaultYear = FALLBACK.year) {
+    const epochs = Array.isArray(config.calendar?.epochs) ? config.calendar.epochs : [];
+    const starts = epochs.map((e) => e.start).filter((v) => typeof v === "number" && Number.isFinite(v));
+    if (starts.length === 0) return { ...FALLBACK };
+    const ends = epochs.map((e) => e.end).filter((v) => typeof v === "number" && Number.isFinite(v));
+    const min = Math.min(...starts);
+    const max = ends.length > 0 ? Math.max(min, ...ends) : min + 800;
+    const year = defaultYear >= min && defaultYear <= max ? defaultYear : max;
+    return { min, max, year };
+  }
+
+  // src/ui/views/Timeline.tsx
   var import_jsx_runtime5 = __toESM(require_jsx_runtime(), 1);
   var message2 = (e) => e instanceof Error ? e.message : String(e);
   function Timeline({ worldId, onOpen }) {
     const [year, setYear] = (0, import_react4.useState)(612);
+    const [range, setRange] = (0, import_react4.useState)({ min: 0, max: 800, year: 612 });
     const [rows, setRows] = (0, import_react4.useState)([]);
     const [error, setError] = (0, import_react4.useState)(null);
     const [loading, setLoading] = (0, import_react4.useState)(true);
+    (0, import_react4.useEffect)(() => {
+      let alive = true;
+      worldConfig(worldId).then((c) => {
+        if (!alive) return;
+        const next = timelineRange(c);
+        setRange(next);
+        setYear((y) => y >= next.min && y <= next.max ? y : next.year);
+      }).catch(() => void 0);
+      return () => {
+        alive = false;
+      };
+    }, [worldId]);
     (0, import_react4.useEffect)(() => {
       let alive = true;
       setRows([]);
@@ -7649,8 +7678,8 @@
           "input",
           {
             type: "range",
-            min: 0,
-            max: 800,
+            min: range.min,
+            max: range.max,
             value: year,
             "aria-label": "\u5E74\u4EFD",
             onChange: (e) => setYear(Number(e.target.value)),

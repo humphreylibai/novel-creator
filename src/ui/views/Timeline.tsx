@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { atYear, type TimelineNode } from '../api.js';
+import { atYear, worldConfig, type TimelineNode } from '../api.js';
+import { timelineRange, type TimelineRange } from '../timelineRange.js';
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -9,9 +10,23 @@ const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
  */
 export function Timeline({ worldId, onOpen }: { worldId: string; onOpen: (id: string) => void }) {
   const [year, setYear] = useState(612);
+  const [range, setRange] = useState<TimelineRange>({ min: 0, max: 800, year: 612 });
   const [rows, setRows] = useState<TimelineNode[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let alive = true;
+    worldConfig(worldId)
+      .then((c) => {
+        if (!alive) return;
+        const next = timelineRange(c);
+        setRange(next);
+        setYear((y) => (y >= next.min && y <= next.max ? y : next.year));
+      })
+      .catch(() => undefined);
+    return () => { alive = false; };
+  }, [worldId]);
 
   useEffect(() => {
     let alive = true;
@@ -39,8 +54,8 @@ export function Timeline({ worldId, onOpen }: { worldId: string; onOpen: (id: st
       <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center' }}>
         <input
           type="range"
-          min={0}
-          max={800}
+          min={range.min}
+          max={range.max}
           value={year}
           aria-label="年份"
           onChange={(e) => setYear(Number(e.target.value))}
