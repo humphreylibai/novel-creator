@@ -1,0 +1,9 @@
+id: 大明王朝1566
+title: 大明王朝1566
+genre: { allowed: [历史, 权谋], forbidden: [玄幻, 穿越], expectation: 历史正剧 }
+calendar:
+  epochs: [{ name: 嘉靖, start: 1522, end: 1566 }]
+  format: "嘉靖{year}年"
+theme:
+  wound: 一个以道德理想立国的王朝，只能靠牺牲百姓与权术平衡来维持运转
+  motif: 改稻为桑，天下为公
