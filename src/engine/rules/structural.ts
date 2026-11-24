@@ -7,17 +7,21 @@ const overlaps = (a: Span, b: Span) =>
 const covers = (outer: Span, inner: Span) =>
   (inner.from ?? -Infinity) >= (outer.from ?? -Infinity) && (inner.to ?? Infinity) <= (outer.to ?? Infinity);
 
-export const R7: Rule = ({ nodes }) => {
+export const R7: Rule = ({ nodes, graph }) => {
   const byId = new Map(nodes.map((n) => [n.id, n]));
   const out: Finding[] = [];
   for (const n of nodes) {
-    for (const axId of n.derives) {
+    if (n.kind !== 'entry') continue;
+    // 依赖来源：derives + inbound manifests，按公理 id 去重
+    const axIds = new Set(n.derives);
+    for (const e of graph.inbound.get(n.id) ?? []) if (e.type === 'manifests') axIds.add(e.from);
+    for (const axId of axIds) {
       const ax = byId.get(axId);
       if (ax && ax.kind === 'axiom' && !covers(ax.span, n.span)) {
         out.push({
           rule: 'R7', severity: 'error', nodeIds: [n.id],
-          message: `派生链断裂：「${n.title}」的生效区间超出公理「${ax.title}」`,
-          hint: '公理已经终止，依赖它的条目却还在',
+          message: `「${n.title}」的生效区间超出公理「${ax.title}」的覆盖范围`,
+          hint: '公理覆盖不到这段时间',
           actions: ['指定新公理', '截断条目区间', '忽略']
         });
       }
@@ -41,6 +45,8 @@ export const R6: Rule = ({ nodes }) => {
     for (let i = 0; i < uniq.length; i++) for (let j = i + 1; j < uniq.length; j++) {
       const a = byId.get(uniq[i]!); const b = byId.get(uniq[j]!);
       if (!a || !b || !overlaps(a.span, b.span)) continue;
+      // 已登记 same_as（任一方向）就是同一个东西，不算同名冲突
+      if (a.sameAs.includes(b.id) || b.sameAs.includes(a.id)) continue;
       const key = [a.id, b.id].sort().join('|');
       if (seen.has(key)) continue;
       seen.add(key);
