@@ -26,6 +26,13 @@ export async function j<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const listWorlds = () => j<string[]>('/worlds');
 
+export const deleteWorld = (id: string) =>
+  fetch(`/api/worlds/${encodeURIComponent(id)}`, { method: 'DELETE' }).then(async (res) => {
+    if (res.status === 204) return;
+    const b = await res.json().catch(() => ({ error: res.statusText })) as { error?: string };
+    throw new Error(b.error ?? res.statusText);
+  });
+
 export const createWorld = (id: string, config: string) =>
   j<{ ok: true }>('/worlds', { method: 'POST', body: JSON.stringify({ id, config }) });
 

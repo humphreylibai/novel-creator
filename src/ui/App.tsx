@@ -188,6 +188,19 @@ export function App() {
     }
   };
 
+  const handleWorldDeleted = async () => {
+    if (!world || !window.confirm(`删除整个世界「${world}」及其全部条目/片段/认知？`)) return;
+    try {
+      await deleteWorld(world);
+      setSelected(null);
+      setStat(null);
+      await reloadWorlds();
+      setView('nodes');
+    } catch (e) {
+      setError(message(e));
+    }
+  };
+
   const handleWorldCreated = async (id: string) => {
     setCreatingWorld(false);
     await reloadWorlds();
@@ -336,6 +349,11 @@ export function App() {
                   padding: '5px 10px', borderRadius: 6, border: '1px solid #e7e2da',
                   background: '#fff', color: '#2c2926', cursor: 'pointer', fontSize: 12,
                 }}>＋ 新建世界</button>
+                <button type="button" onClick={() => void handleWorldDeleted()} disabled={!world} style={{
+                  padding: '5px 10px', borderRadius: 6, border: '1px solid #fecaca',
+                  background: '#fff', color: world ? '#b91c1c' : '#a8a29a',
+                  cursor: world ? 'pointer' : 'not-allowed', fontSize: 12,
+                }}>删除世界</button>
                 <div role="tablist" aria-label="世界观视图" style={{
                   display: 'flex', gap: 2, padding: 2, borderRadius: 6,
                   border: '1px solid #e7e2da', background: '#faf9f7',

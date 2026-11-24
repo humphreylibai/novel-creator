@@ -1,4 +1,4 @@
-import { mkdir, readdir, readFile, writeFile, unlink } from 'node:fs/promises';
+import { mkdir, readdir, readFile, writeFile, unlink, rm } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { parseNode, serializeNode } from '../engine/frontmatter.js';
@@ -148,4 +148,12 @@ export async function deleteBelief(root: string, worldId: string, id: string): P
       throw new Error(`找不到认知 ${id}`);
     throw e;
   }
+}
+
+
+export async function deleteWorld(root: string, id: string): Promise<void> {
+  if (!isSafeName(id)) throw new Error('非法世界 id');
+  const dir = worldDir(root, id);
+  if (!existsSync(dir)) throw new Error(`找不到世界 ${id}`);
+  await rm(dir, { recursive: true, force: false });
 }

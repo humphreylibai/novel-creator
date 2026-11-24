@@ -138,6 +138,17 @@ export function createHandlers(root: string): (req: NovelReq) => Promise<NovelRe
       if (!worldId) return { status: 404, json: { error: '缺少世界 id' } };
       if (!isSafeName(worldId)) return { status: 404, json: { error: '世界 id 非法' } };
 
+      if (parts.length === 2 && req.method === 'DELETE') {
+        try {
+          await store.deleteWorld(root, worldId);
+        } catch (e) {
+          if (e instanceof Error && e.message.startsWith('找不到世界'))
+            return { status: 404, json: { error: e.message } };
+          throw e;
+        }
+        return { status: 204 };
+      }
+
       if (parts[2] === 'config' && req.method === 'GET')
         return { status: 200, json: await store.readWorldConfig(root, worldId) };
 

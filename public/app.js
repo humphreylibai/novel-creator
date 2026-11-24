@@ -8968,6 +8968,18 @@ theme:
         if (worldRef.current === w) setError(message6(e));
       }
     };
+    const handleWorldDeleted = async () => {
+      if (!world || !window.confirm(`\u5220\u9664\u6574\u4E2A\u4E16\u754C\u300C${world}\u300D\u53CA\u5176\u5168\u90E8\u6761\u76EE/\u7247\u6BB5/\u8BA4\u77E5\uFF1F`)) return;
+      try {
+        await deleteWorld(world);
+        setSelected(null);
+        setStat(null);
+        await reloadWorlds();
+        setView("nodes");
+      } catch (e) {
+        setError(message6(e));
+      }
+    };
     const handleWorldCreated = async (id) => {
       setCreatingWorld(false);
       await reloadWorlds();
@@ -9143,6 +9155,15 @@ theme:
               cursor: "pointer",
               fontSize: 12
             }, children: "\uFF0B \u65B0\u5EFA\u4E16\u754C" }),
+            /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("button", { type: "button", onClick: () => void handleWorldDeleted(), disabled: !world, style: {
+              padding: "5px 10px",
+              borderRadius: 6,
+              border: "1px solid #fecaca",
+              background: "#fff",
+              color: world ? "#b91c1c" : "#a8a29a",
+              cursor: world ? "pointer" : "not-allowed",
+              fontSize: 12
+            }, children: "\u5220\u9664\u4E16\u754C" }),
             /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { role: "tablist", "aria-label": "\u4E16\u754C\u89C2\u89C6\u56FE", style: {
               display: "flex",
               gap: 2,
