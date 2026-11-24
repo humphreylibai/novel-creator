@@ -26,7 +26,7 @@
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json && node scripts/build-ui.mjs",
+    "build": "tsc --noEmit -p tsconfig.json && tsc -p tsconfig.build.json && node scripts/build-ui.mjs",
     "test": "vitest run",
     "check": "tsx src/host/cli.ts",
     "verify": "npm run build && npm test"

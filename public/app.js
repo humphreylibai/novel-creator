@@ -7295,6 +7295,11 @@
     return body;
   }
   var listWorlds = () => j("/worlds");
+  var deleteWorld = (id) => fetch(`/api/worlds/${encodeURIComponent(id)}`, { method: "DELETE" }).then(async (res) => {
+    if (res.status === 204) return;
+    const b = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(b.error ?? res.statusText);
+  });
   var createWorld = (id, config) => j("/worlds", { method: "POST", body: JSON.stringify({ id, config }) });
   var listNodes = (w) => j(`/worlds/${encodeURIComponent(w)}/nodes`);
   var stats = (w) => j(`/worlds/${encodeURIComponent(w)}/stats`);

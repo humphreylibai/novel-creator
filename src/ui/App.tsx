@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  listNodes, listWorlds, missingLinks, readNode, stats,
+  deleteWorld, listNodes, listWorlds, missingLinks, readNode, stats,
   type NodeRecord, type Stats,
 } from './api.js';
 import { Findings } from './views/Findings.js';
